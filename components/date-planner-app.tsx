@@ -737,7 +737,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         <div className="brand">
           <div className="brand__mark">C</div>
           <div>
-            <p className="eyebrow">Transit-first date planner</p>
+            <p className="eyebrow">Transit-first planner</p>
             <h1>COUPLE</h1>
           </div>
         </div>
@@ -768,7 +768,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
       <section className="hero">
         <div className="hero__copy">
-          <p className="eyebrow">Designed for real Seoul dates</p>
+          <p className="eyebrow">서울 기준 데이트 플래너</p>
           <h2>지금 움직일 수 있는 데이트 코스</h2>
           <p className="hero__text">
             시간, 이동, 분위기를 한 번에 보고 바로 수정할 수 있게 정리했습니다. 긴 설명보다
@@ -893,7 +893,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         <div className="section-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Adaptive planner</p>
+              <p className="eyebrow">실시간 플래너</p>
               <h3>오늘 코스 조정</h3>
             </div>
             <div className="section-heading__meta">
@@ -906,7 +906,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     ? "실서비스 전환 준비 완료"
                     : diagnostics.place.configured || diagnostics.transit.configured
                       ? "실데이터 일부 연결"
-                      : "현재 목업 provider"}
+                      : "현재 목업 데이터"}
                 </span>
               ) : null}
               {errorMessage ? (
@@ -922,7 +922,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             <article className="work-card work-card--recommendation">
               <div className="planner-top">
                 <div>
-                  <p className="eyebrow">Dynamic recommendation lab</p>
+                  <p className="eyebrow">추천 엔진</p>
                   <h4>추천 패널</h4>
                   <p className="subtle-text">
                     지역과 활동 조합을 바꾸면 추천과 대안 후보를 바로 다시 계산합니다.
@@ -945,7 +945,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   ) : null}
                   {diagnostics?.issues.length ? (
                     <div className="setup-panel">
-                      <strong>실서비스 전환 전 확인할 항목</strong>
+                      <strong>실서비스 연결 전 체크</strong>
                       <ul className="bullet-list">
                         {diagnostics.issues.map((issue) => (
                           <li key={issue}>{issue}</li>
@@ -1467,7 +1467,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         <div className="section-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Preference profile</p>
+              <p className="eyebrow">취향 프로필</p>
               <h3>취향은 짧게 입력</h3>
             </div>
           </div>
@@ -1648,7 +1648,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         <div className="section-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Dual experience</p>
+              <p className="eyebrow">모드 안내</p>
               <h3>P / J 모드</h3>
             </div>
           </div>
