@@ -777,6 +777,12 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             바로 쓰는 흐름에 집중했습니다.
           </p>
 
+          <div className="hero__meta-row">
+            <span className="hero-badge">출발 {planner.startLabel}</span>
+            <span className="hero-badge">{mode === "p" ? "P 모드 즉흥형" : "J 모드 설계형"}</span>
+            <span className="hero-badge">{planner.steps.length}개 코스</span>
+          </div>
+
           <div className="hero__cta">
             <button
               type="button"
@@ -813,7 +819,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         <div className="hero__rail">
           <article className="hero-card hero-card--plan">
             <div className="hero-card__header">
-              <span>오늘 추천</span>
+              <span>오늘 추천 스냅샷</span>
               <strong>{planner.label}</strong>
             </div>
             <div className="hero-route-list">
@@ -835,7 +841,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           <article className="hero-card hero-card--mode">
             <div className="hero-card__header">
               <span>현재 모드</span>
-              <strong>{mode === "p" ? "P mode" : "J mode"}</strong>
+              <strong>{mode === "p" ? "P 모드" : "J 모드"}</strong>
             </div>
             <div className="hero-mode-grid">
               <button
@@ -844,7 +850,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 onClick={() => handleModeChange("p")}
                 disabled={busy}
               >
-                <strong>P mode</strong>
+                <strong>P 모드</strong>
                 <span>다음 한 단계 중심</span>
               </button>
               <button
@@ -853,7 +859,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 onClick={() => handleModeChange("j")}
                 disabled={busy}
               >
-                <strong>J mode</strong>
+                <strong>J 모드</strong>
                 <span>순서와 이동 직접 수정</span>
               </button>
             </div>
@@ -969,15 +975,15 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     <div className="status-row">
                       <span className="status-pill">
                         장소: {diagnostics.place.provider}
-                        {diagnostics.place.configured ? " live" : " mock"}
+                        {diagnostics.place.configured ? " 실데이터" : " 목업"}
                       </span>
                       <span className="status-pill">
                         교통: {diagnostics.transit.provider}
-                        {diagnostics.transit.configured ? " live" : " mock"}
+                        {diagnostics.transit.configured ? " 실데이터" : " 목업"}
                       </span>
                       <span className="status-pill">
                         리뷰: {diagnostics.review.provider}
-                        {diagnostics.review.configured ? " live" : " mock"}
+                        {diagnostics.review.configured ? " 실데이터" : " 목업"}
                       </span>
                     </div>
                   ) : null}
@@ -1169,9 +1175,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     <div>
                       <span>캐시 상태</span>
                       <strong>
-                        {recommendation.cache.hit
-                          ? `${recommendation.cache.source} cache`
-                          : "fresh response"}
+                        {recommendation.cache.hit ? `${recommendation.cache.source} 캐시` : "실시간 계산"}
                       </strong>
                     </div>
                     <div>
@@ -1342,7 +1346,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     aria-pressed={mode === "p"}
                     disabled={busy}
                   >
-                    P mode
+                    P 모드
                   </button>
                   <button
                     type="button"
@@ -1351,7 +1355,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     aria-pressed={mode === "j"}
                     disabled={busy}
                   >
-                    J mode
+                    J 모드
                   </button>
                 </div>
               </div>
@@ -1447,7 +1451,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               <article className="work-card">
               <div className="score-head">
                 <div>
-                  <p className="eyebrow">Course quality</p>
+                  <p className="eyebrow">코스 완성도</p>
                   <h4>{planner.scores.overall}점</h4>
                 </div>
                 <span className="quality-pill">{planner.scoreLabel}</span>
@@ -1474,7 +1478,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </article>
 
               <article className="work-card work-card--accent">
-              <p className="eyebrow">Smart fallback</p>
+              <p className="eyebrow">대안 추천</p>
               <h4>{planner.altPanel.title}</h4>
               <p className="subtle-text">{planner.altPanel.copy}</p>
 
@@ -1495,7 +1499,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </article>
 
               <article className="work-card">
-              <p className="eyebrow">Why this works</p>
+              <p className="eyebrow">추천 근거</p>
               <h4>추천 이유</h4>
               <p className="subtle-text">{planner.reason}</p>
               </article>
@@ -1518,7 +1522,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
           <div className="profile-zone__grid">
             <article className="profile-card profile-card--identity">
-            <p className="eyebrow">Tonight fit</p>
+            <p className="eyebrow">오늘의 취향</p>
             <h4>{planner.profile.headline}</h4>
             <p className="subtle-text">{planner.profile.description}</p>
             <div className="token-row">
@@ -1531,7 +1535,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </article>
 
             <article className="profile-card">
-            <p className="eyebrow">Preference controls</p>
+            <p className="eyebrow">취향 조정</p>
             <h4>오늘 기준만 빠르게 조정</h4>
             <div className="control-stack">
               <div className="control-group">
@@ -1618,7 +1622,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </article>
 
             <article className="profile-card">
-            <p className="eyebrow">Mode behavior</p>
+            <p className="eyebrow">모드 설명</p>
             <h4>{mode === "p" ? "즉흥형을 위한 안내형 UX" : "통제형을 위한 편집형 UX"}</h4>
             <ul className="bullet-list">
               {(mode === "p" ? planner.modeNotes.p : planner.modeNotes.j).map((note) => (
@@ -1630,7 +1634,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             <article className="profile-card profile-card--wide">
             <div className="profile-wide__header">
               <div>
-                <p className="eyebrow">Saved plans</p>
+                <p className="eyebrow">저장된 코스</p>
                 <h4>마음에 드는 코스를 저장해 다시 불러오기</h4>
               </div>
               <button type="button" className="button button--primary" onClick={saveCurrentPlan}>
@@ -1700,7 +1704,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           <div className="modes__grid">
             <article className={mode === "p" ? "mode-card is-active" : "mode-card"}>
             <div className="card-header">
-              <span>P mode</span>
+              <span>P 모드</span>
               <span>상황 대응</span>
             </div>
             <h4>복잡한 계획보다 다음 한 단계에 집중</h4>
@@ -1712,7 +1716,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
             <article className={mode === "j" ? "mode-card is-active" : "mode-card"}>
             <div className="card-header">
-              <span>J mode</span>
+              <span>J 모드</span>
               <span>정밀 조정</span>
             </div>
             <h4>순서와 구조를 눈으로 보면서 바로 수정</h4>
