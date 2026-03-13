@@ -22,6 +22,7 @@ type DatePlannerAppProps = {
 };
 
 type AppPanel = "planner" | "profile" | "modes";
+type WorkspacePanel = "recommend" | "plan" | "insights";
 
 const budgetChoices = [50000, 80000, 120000];
 const walkChoices: { value: WalkPreference; label: string }[] = [
@@ -265,6 +266,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [activePanel, setActivePanel] = useState<AppPanel>("planner");
+  const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<WorkspacePanel>("plan");
   const hasAutoLoaded = useRef(false);
   const busy = isLoading || isPending;
 
@@ -917,8 +919,44 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </div>
           </div>
 
+          <div className="workspace-switcher" role="tablist" aria-label="코스 작업 전환">
+            <button
+              type="button"
+              className={
+                activeWorkspacePanel === "recommend"
+                  ? "workspace-switcher__button is-active"
+                  : "workspace-switcher__button"
+              }
+              onClick={() => setActiveWorkspacePanel("recommend")}
+            >
+              추천
+            </button>
+            <button
+              type="button"
+              className={
+                activeWorkspacePanel === "plan"
+                  ? "workspace-switcher__button is-active"
+                  : "workspace-switcher__button"
+              }
+              onClick={() => setActiveWorkspacePanel("plan")}
+            >
+              코스 편집
+            </button>
+            <button
+              type="button"
+              className={
+                activeWorkspacePanel === "insights"
+                  ? "workspace-switcher__button is-active"
+                  : "workspace-switcher__button"
+              }
+              onClick={() => setActiveWorkspacePanel("insights")}
+            >
+              점수/대안
+            </button>
+          </div>
+
           <div className="workspace__grid" aria-busy={busy}>
-            <section className="workspace__main">
+            {activeWorkspacePanel === "recommend" ? (
             <article className="work-card work-card--recommendation">
               <div className="planner-top">
                 <div>
@@ -1267,7 +1305,10 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 </div>
               ) : null}
             </article>
+            ) : null}
 
+            {activeWorkspacePanel === "plan" ? (
+            <section className="workspace__main">
             <div className="scenario-strip" aria-label="데이트 시나리오 선택">
               {scenarios.map((scenario) => (
                 <button
@@ -1399,8 +1440,10 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               </div>
             </article>
             </section>
+            ) : null}
 
-            <aside className="workspace__side">
+            {activeWorkspacePanel === "insights" ? (
+            <aside className="workspace__side workspace__side--full">
               <article className="work-card">
               <div className="score-head">
                 <div>
@@ -1457,6 +1500,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               <p className="subtle-text">{planner.reason}</p>
               </article>
             </aside>
+            ) : null}
           </div>
         </div>
       </section>
