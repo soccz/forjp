@@ -21,6 +21,8 @@ type DatePlannerAppProps = {
   scenarios: ScenarioSummary[];
 };
 
+type AppPanel = "planner" | "profile" | "modes";
+
 const budgetChoices = [50000, 80000, 120000];
 const walkChoices: { value: WalkPreference; label: string }[] = [
   { value: "easy", label: "도보 적게" },
@@ -262,6 +264,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [activePanel, setActivePanel] = useState<AppPanel>("planner");
   const hasAutoLoaded = useRef(false);
   const busy = isLoading || isPending;
 
@@ -739,28 +742,54 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </div>
         </div>
         <nav className="masthead__nav" aria-label="주요 섹션">
-          <a href="#workspace">Planner</a>
-          <a href="#personalize">Personalize</a>
-          <a href="#modes">Modes</a>
+          <button
+            type="button"
+            className={activePanel === "planner" ? "nav-tab is-active" : "nav-tab"}
+            onClick={() => setActivePanel("planner")}
+          >
+            Planner
+          </button>
+          <button
+            type="button"
+            className={activePanel === "profile" ? "nav-tab is-active" : "nav-tab"}
+            onClick={() => setActivePanel("profile")}
+          >
+            Personalize
+          </button>
+          <button
+            type="button"
+            className={activePanel === "modes" ? "nav-tab is-active" : "nav-tab"}
+            onClick={() => setActivePanel("modes")}
+          >
+            Modes
+          </button>
         </nav>
       </header>
 
       <section className="hero">
         <div className="hero__copy">
           <p className="eyebrow">Designed for real Seoul dates</p>
-          <h2>누구나 쉽게 쓰되, 충분히 세련된 데이트 운영 화면</h2>
+          <h2>지금 움직일 수 있는 데이트 코스</h2>
           <p className="hero__text">
-            복잡한 지도 앱 감성 대신, 지금 시간과 이동 피로도까지 이해하는 카드 중심 흐름으로
-            다시 설계했습니다. 정보는 줄이고 판단력은 올리는 쪽으로 UI와 UX를 정리했습니다.
+            시간, 이동, 분위기를 한 화면에서 바로 조정할 수 있게 정리했습니다. 복잡한 지도 앱보다
+            덜 피곤하고, 추천 앱보다 더 구체적으로 쓰는 흐름을 목표로 했습니다.
           </p>
 
           <div className="hero__cta">
-            <a className="button button--primary" href="#workspace">
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => setActivePanel("planner")}
+            >
               코스 바로 보기
-            </a>
-            <a className="button button--ghost" href="#modes">
+            </button>
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => setActivePanel("modes")}
+            >
               P/J 모드 비교
-            </a>
+            </button>
           </div>
 
           <dl className="hero__stats">
@@ -824,12 +853,37 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
         </div>
       </section>
 
+      <div className="panel-switcher" role="tablist" aria-label="화면 전환">
+        <button
+          type="button"
+          className={activePanel === "planner" ? "panel-switcher__button is-active" : "panel-switcher__button"}
+          onClick={() => setActivePanel("planner")}
+        >
+          Planner
+        </button>
+        <button
+          type="button"
+          className={activePanel === "profile" ? "panel-switcher__button is-active" : "panel-switcher__button"}
+          onClick={() => setActivePanel("profile")}
+        >
+          Preferences
+        </button>
+        <button
+          type="button"
+          className={activePanel === "modes" ? "panel-switcher__button is-active" : "panel-switcher__button"}
+          onClick={() => setActivePanel("modes")}
+        >
+          Modes
+        </button>
+      </div>
+
+      {activePanel === "planner" ? (
       <section id="workspace" className="workspace">
         <div className="section-panel">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Adaptive planner</p>
-              <h3>오늘 데이트를 바로 조정할 수 있는 작업 화면</h3>
+              <h3>오늘 코스 조정</h3>
             </div>
             <div className="section-heading__meta">
               <span className={busy ? "live-pill live-pill--pending" : "live-pill"}>
@@ -858,9 +912,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               <div className="planner-top">
                 <div>
                   <p className="eyebrow">Dynamic recommendation lab</p>
-                  <h4>실데이터 연동 전 구조 검증용 추천 패널</h4>
+                  <h4>추천 패널</h4>
                   <p className="subtle-text">
-                    지역과 활동 조합을 바꿔 추천 엔진 응답 구조를 바로 확인할 수 있습니다.
+                    지역과 활동 조합을 바꾸면 추천과 대안 후보를 바로 다시 계산합니다.
                   </p>
                   {diagnostics ? (
                     <div className="status-row">
@@ -1395,13 +1449,15 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activePanel === "profile" ? (
       <section id="personalize" className="profile-zone">
         <div className="section-panel">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Preference profile</p>
-              <h3>많이 묻지 않아도 성향이 드러나게</h3>
+              <h3>취향은 짧게 입력</h3>
             </div>
           </div>
 
@@ -1574,13 +1630,15 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activePanel === "modes" ? (
       <section id="modes" className="modes">
         <div className="section-panel">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Dual experience</p>
-              <h3>P와 J를 분리해서도, 이어서도 쓰게</h3>
+              <h3>P / J 모드</h3>
             </div>
           </div>
 
@@ -1611,6 +1669,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </div>
         </div>
       </section>
+      ) : null}
     </main>
   );
 }

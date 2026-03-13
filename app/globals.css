@@ -168,6 +168,19 @@ button {
   color: var(--muted);
 }
 
+.nav-tab {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.nav-tab.is-active {
+  background: rgba(32, 23, 20, 0.08);
+  color: var(--ink);
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1.06fr 0.94fr;
@@ -299,6 +312,30 @@ button {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: 16px;
+}
+
+.panel-switcher {
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(255, 251, 246, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: var(--shadow-md);
+}
+
+.panel-switcher__button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.panel-switcher__button.is-active {
+  background: rgba(32, 23, 20, 0.08);
+  color: var(--ink);
 }
 
 .glass-card,
@@ -1225,6 +1262,11 @@ button {
   .masthead__nav {
     flex-wrap: wrap;
     gap: 14px;
+  }
+
+  .panel-switcher {
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .hero__stats,
