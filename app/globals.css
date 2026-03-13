@@ -157,7 +157,7 @@ button {
 }
 
 .brand h1 {
-  font-size: 1.55rem;
+  font-size: 1.32rem;
   letter-spacing: 0.14em;
 }
 
@@ -183,10 +183,10 @@ button {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.06fr 0.94fr;
-  gap: 24px;
-  align-items: stretch;
-  margin-bottom: 28px;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 22px;
 }
 
 .hero__copy,
@@ -206,14 +206,14 @@ button {
 }
 
 .hero__copy {
-  padding: 24px 0;
+  padding: 12px 0 0;
 }
 
 .hero h2 {
-  margin-top: 14px;
-  font-size: clamp(2.9rem, 6vw, 5rem);
-  line-height: 0.95;
-  letter-spacing: -0.05em;
+  margin-top: 12px;
+  font-size: clamp(2.15rem, 4.6vw, 3.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
 }
 
 .hero__text,
@@ -228,15 +228,15 @@ button {
 
 .hero__text {
   max-width: 640px;
-  margin: 18px 0 0;
-  font-size: 1.04rem;
+  margin: 14px 0 0;
+  font-size: 0.97rem;
 }
 
 .hero__cta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 22px;
 }
 
 .button {
@@ -280,15 +280,15 @@ button {
 .hero__stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin: 28px 0 0;
+  gap: 12px;
+  margin: 22px 0 0;
 }
 
 .hero__stats div,
 .summary-row div,
 .score-grid div,
 .comfort-grid div {
-  padding: 18px;
+  padding: 16px;
   border-radius: var(--radius-md);
   background: rgba(255, 251, 246, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -299,19 +299,18 @@ button {
 .summary-row span,
 .score-grid span {
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .hero__stats dd {
-  margin: 8px 0 0;
-  font-size: 1.26rem;
+  margin: 6px 0 0;
+  font-size: 1.08rem;
   font-weight: 700;
 }
 
-.hero__cards {
+.hero__rail {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .panel-switcher {
@@ -338,7 +337,6 @@ button {
   color: var(--ink);
 }
 
-.glass-card,
 .work-card,
 .profile-card,
 .mode-card,
@@ -347,61 +345,115 @@ button {
   box-shadow: var(--shadow-xl);
 }
 
-.glass-card {
-  padding: 22px;
-  min-height: 520px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
+.hero-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow: 0 18px 42px rgba(88, 58, 44, 0.08);
 }
 
-.glass-card--light {
-  background: linear-gradient(180deg, rgba(255, 248, 242, 0.92) 0%, rgba(255, 241, 232, 0.86) 100%);
+.hero-card--plan {
+  background: linear-gradient(180deg, rgba(255, 248, 242, 0.94) 0%, rgba(255, 243, 236, 0.88) 100%);
 }
 
-.glass-card--dark {
+.hero-card--mode {
   color: var(--white);
   background:
-    radial-gradient(circle at top right, rgba(239, 154, 104, 0.22), transparent 32%),
-    linear-gradient(180deg, rgba(27, 24, 22, 0.98) 0%, rgba(20, 18, 17, 0.98) 100%);
+    radial-gradient(circle at top right, rgba(239, 170, 110, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(33, 29, 27, 0.98) 0%, rgba(21, 19, 18, 0.98) 100%);
 }
 
+.hero-card__header,
 .card-header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 2px;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
-.glass-card--dark .card-header,
+.hero-card--mode .hero-card__header,
 .mode-card .card-header {
   color: var(--muted-on-dark);
 }
 
-.chat-panel,
-.route-preview {
-  display: grid;
-  gap: 14px;
+.hero-card__header strong {
+  font-size: 0.96rem;
+  color: inherit;
 }
 
-.chat-bubble {
-  max-width: 92%;
-  padding: 14px 16px;
-  border-radius: 22px;
+.hero-route-list {
+  display: grid;
+  gap: 10px;
+}
+
+.hero-route-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.hero-route-item__index {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.hero-route-item p,
+.hero-card__caption {
+  margin: 4px 0 0;
+  color: var(--muted);
   line-height: 1.55;
 }
 
-.chat-bubble--assistant {
-  background: var(--white);
-  color: var(--ink);
-  border-bottom-left-radius: 10px;
+.hero-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.chat-bubble--user {
-  margin-left: auto;
+.hero-mode-tile {
+  display: grid;
+  gap: 6px;
+  min-height: 92px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 247, 241, 0.8);
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-mode-tile strong {
+  font-size: 0.96rem;
   color: var(--white);
-  background: linear-gradient(135deg, var(--accent) 0%, #f19255 100%);
-  border-bottom-right-radius: 10px;
+}
+
+.hero-mode-tile span {
+  line-height: 1.45;
+}
+
+.hero-mode-tile.is-active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hero-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .token-row {
@@ -462,31 +514,6 @@ button {
   color: var(--accent-strong);
 }
 
-.route-preview__item {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.route-preview__item span {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--white);
-  font-weight: 700;
-}
-
-.route-preview__item p {
-  margin: 4px 0 0;
-  color: rgba(255, 247, 241, 0.74);
-}
-
 .section-heading {
   display: flex;
   align-items: flex-end;
@@ -497,8 +524,8 @@ button {
 
 .section-heading h3 {
   margin-top: 10px;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.98;
+  font-size: clamp(1.55rem, 2.8vw, 2.2rem);
+  line-height: 1.02;
   letter-spacing: -0.04em;
 }
 
@@ -597,7 +624,7 @@ button {
   display: grid;
   align-content: start;
   gap: 6px;
-  padding: 28px;
+  padding: 24px;
   background: rgba(255, 251, 246, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.62);
   box-shadow: 0 18px 42px rgba(88, 58, 44, 0.08);
@@ -646,7 +673,7 @@ button {
 .profile-card h4,
 .mode-card h4 {
   margin-top: 8px;
-  font-size: 1.45rem;
+  font-size: 1.18rem;
 }
 
 .mode-toggle {
@@ -671,7 +698,7 @@ button {
 }
 
 .summary-row {
-  margin-top: 24px;
+  margin-top: 18px;
 }
 
 .planner-brief {
@@ -701,8 +728,8 @@ button {
 
 .step-list {
   display: grid;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .step-card {
@@ -710,8 +737,8 @@ button {
   grid-template-columns: 58px 1fr auto;
   gap: 16px;
   align-items: start;
-  min-height: 172px;
-  padding: 18px;
+  min-height: 150px;
+  padding: 16px;
   border-radius: var(--radius-xl);
   background: rgba(255, 255, 255, 0.76);
   border: 1px solid rgba(255, 255, 255, 0.78);
@@ -1238,7 +1265,8 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .hero__cards {
+  .hero__rail,
+  .hero-mode-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1300,7 +1328,7 @@ button {
 @media (max-width: 720px) {
   .hero h2,
   .section-heading h3 {
-    font-size: 2.35rem;
+    font-size: 1.9rem;
   }
 
   .hero__cta {
@@ -1321,6 +1349,10 @@ button {
   .profile-card,
   .mode-card {
     padding: 22px;
+  }
+
+  .hero-card {
+    padding: 18px;
   }
 
   .step-card {

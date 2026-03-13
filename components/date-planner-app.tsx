@@ -747,21 +747,21 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             className={activePanel === "planner" ? "nav-tab is-active" : "nav-tab"}
             onClick={() => setActivePanel("planner")}
           >
-            Planner
+            코스
           </button>
           <button
             type="button"
             className={activePanel === "profile" ? "nav-tab is-active" : "nav-tab"}
             onClick={() => setActivePanel("profile")}
           >
-            Personalize
+            취향
           </button>
           <button
             type="button"
             className={activePanel === "modes" ? "nav-tab is-active" : "nav-tab"}
             onClick={() => setActivePanel("modes")}
           >
-            Modes
+            모드
           </button>
         </nav>
       </header>
@@ -771,8 +771,8 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           <p className="eyebrow">Designed for real Seoul dates</p>
           <h2>지금 움직일 수 있는 데이트 코스</h2>
           <p className="hero__text">
-            시간, 이동, 분위기를 한 화면에서 바로 조정할 수 있게 정리했습니다. 복잡한 지도 앱보다
-            덜 피곤하고, 추천 앱보다 더 구체적으로 쓰는 흐름을 목표로 했습니다.
+            시간, 이동, 분위기를 한 번에 보고 바로 수정할 수 있게 정리했습니다. 긴 설명보다
+            바로 쓰는 흐름에 집중했습니다.
           </p>
 
           <div className="hero__cta">
@@ -808,38 +808,16 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           </dl>
         </div>
 
-        <div className="hero__cards">
-          <article className="glass-card glass-card--light">
-            <div className="card-header">
-              <span>P mode</span>
-              <span>즉흥형</span>
+        <div className="hero__rail">
+          <article className="hero-card hero-card--plan">
+            <div className="hero-card__header">
+              <span>오늘 추천</span>
+              <strong>{planner.label}</strong>
             </div>
-            <div className="chat-panel">
-              <div className="chat-bubble chat-bubble--assistant">
-                지금 {planner.startLabel} 기준으로 가장 자연스러운 첫 코스를 골랐어요.
-              </div>
-              <div className="chat-bubble chat-bubble--user">
-                오늘은 {planner.profile.headline} 느낌으로 가고 싶어.
-              </div>
-              <div className="token-row">
-                {planner.profile.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="token">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </article>
-
-          <article className="glass-card glass-card--dark">
-            <div className="card-header">
-              <span>J mode</span>
-              <span>통제형</span>
-            </div>
-            <div className="route-preview">
-              {planner.steps.map((step, index) => (
-                <div key={step.id} className="route-preview__item">
-                  <span>{index + 1}</span>
+            <div className="hero-route-list">
+              {planner.steps.slice(0, 3).map((step, index) => (
+                <div key={step.id} className="hero-route-item">
+                  <span className="hero-route-item__index">{index + 1}</span>
                   <div>
                     <strong>{step.title}</strong>
                     <p>
@@ -848,6 +826,39 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   </div>
                 </div>
               ))}
+            </div>
+            <p className="hero-card__caption">{planner.reason}</p>
+          </article>
+
+          <article className="hero-card hero-card--mode">
+            <div className="hero-card__header">
+              <span>현재 모드</span>
+              <strong>{mode === "p" ? "P mode" : "J mode"}</strong>
+            </div>
+            <div className="hero-mode-grid">
+              <button
+                type="button"
+                className={mode === "p" ? "hero-mode-tile is-active" : "hero-mode-tile"}
+                onClick={() => handleModeChange("p")}
+                disabled={busy}
+              >
+                <strong>P mode</strong>
+                <span>다음 한 단계 중심</span>
+              </button>
+              <button
+                type="button"
+                className={mode === "j" ? "hero-mode-tile is-active" : "hero-mode-tile"}
+                onClick={() => handleModeChange("j")}
+                disabled={busy}
+              >
+                <strong>J mode</strong>
+                <span>순서와 이동 직접 수정</span>
+              </button>
+            </div>
+            <div className="hero-chip-row">
+              <span className="token">{planner.startLabel}</span>
+              <span className="token">{getWalkLabel(preferences.walkPreference)}</span>
+              <span className="token">{getVibeLabel(preferences.vibePreference)}</span>
             </div>
           </article>
         </div>
@@ -859,21 +870,21 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           className={activePanel === "planner" ? "panel-switcher__button is-active" : "panel-switcher__button"}
           onClick={() => setActivePanel("planner")}
         >
-          Planner
+          코스
         </button>
         <button
           type="button"
           className={activePanel === "profile" ? "panel-switcher__button is-active" : "panel-switcher__button"}
           onClick={() => setActivePanel("profile")}
         >
-          Preferences
+          취향
         </button>
         <button
           type="button"
           className={activePanel === "modes" ? "panel-switcher__button is-active" : "panel-switcher__button"}
           onClick={() => setActivePanel("modes")}
         >
-          Modes
+          모드
         </button>
       </div>
 
