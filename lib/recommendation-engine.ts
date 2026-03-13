@@ -422,12 +422,15 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
   let candidates: VenueCandidate[];
   try {
     candidates = await placeProvider.search(input);
+    const hasPlaceFallback = placeProvider.isLive && candidates.some((candidate) => candidate.source === "mock");
     providerStatuses.push({
       stage: "place",
       activeProvider: placeProvider.label,
-      mode: placeProvider.isLive ? "live" : "mock",
-      message: placeProvider.isLive
-        ? "장소 검색에 실데이터 provider를 사용했습니다."
+      mode: hasPlaceFallback ? "fallback" : placeProvider.isLive ? "live" : "mock",
+      message: hasPlaceFallback
+        ? "장소 검색은 실데이터를 우선 사용했지만 일부 카테고리는 목업 후보로 fallback했습니다."
+        : placeProvider.isLive
+          ? "장소 검색에 실데이터 provider를 사용했습니다."
         : "장소 검색은 현재 목업 provider를 사용 중입니다.",
     });
   } catch {
@@ -522,15 +525,26 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
   const totalTravelMinutes = candidatesWithAlternatives.reduce((sum, candidate) => sum + candidate.travelMinutes, 0);
   const totalEstimatedCost = candidatesWithAlternatives.reduce((sum, candidate) => sum + candidate.estimatedCost, 0);
   const usesRealData = candidatesWithAlternatives.some((candidate) => candidate.source === "kakao");
+  const allPlacesRealData =
+    candidatesWithAlternatives.length > 0 &&
+    candidatesWithAlternatives.every((candidate) => candidate.source === "kakao");
   const alerts = buildRouteAlerts(
     candidatesWithAlternatives,
     input.preferences,
     totalTravelMinutes,
     totalEstimatedCost
   );
+  if (placeProvider.isLive && !allPlacesRealData) {
+    alerts.unshift({
+      id: "place-partial-fallback",
+      title: "장소 데이터가 일부 fallback 상태입니다",
+      detail: "실데이터 검색 결과가 충분하지 않은 카테고리는 목업 후보가 섞여 있을 수 있습니다.",
+      tone: "caution",
+    });
+  }
 
   const result: RecommendationResponse = {
-    provider: usesRealData ? "hybrid" : "mock",
+    provider: allPlacesRealData ? "live" : usesRealData ? "hybrid" : "mock",
     providerLabel: `${placeProvider.label} + ${transitProvider.label} + ${reviewProvider.label}`,
     providers: providerStatuses,
     routeLabel: `${input.district} ${input.categories.join(" · ")} 코스`,
@@ -550,7 +564,7 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
           ? "시각적 무드와 사진 포인트를 높게 봤습니다."
           : "가볍게 템포가 바뀌는 장소를 우선했습니다."
     }`,
-    alerts,
+    alerts: alerts.slice(0, 4),
     candidates: candidatesWithAlternatives,
     cache: {
       hit: false,

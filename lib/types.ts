@@ -140,7 +140,7 @@ export type RecommendationRequest = {
 };
 
 export type RecommendationResponse = {
-  provider: "mock" | "hybrid";
+  provider: "mock" | "hybrid" | "live";
   providerLabel: string;
   providers: ProviderStatus[];
   routeLabel: string;

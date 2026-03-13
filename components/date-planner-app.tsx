@@ -825,34 +825,35 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       </section>
 
       <section id="workspace" className="workspace">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Adaptive planner</p>
-            <h3>오늘 데이트를 바로 조정할 수 있는 작업 화면</h3>
-          </div>
-          <div className="section-heading__meta">
-            <span className={busy ? "live-pill live-pill--pending" : "live-pill"}>
-              {busy ? "재계산 중" : "실시간 반영"}
-            </span>
-            {diagnostics ? (
-              <span className="quality-pill">
-                {diagnostics.readyForLive
-                  ? "실서비스 전환 준비 완료"
-                  : diagnostics.place.configured || diagnostics.transit.configured
-                    ? "실데이터 일부 연결"
-                    : "현재 목업 provider"}
+        <div className="section-panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Adaptive planner</p>
+              <h3>오늘 데이트를 바로 조정할 수 있는 작업 화면</h3>
+            </div>
+            <div className="section-heading__meta">
+              <span className={busy ? "live-pill live-pill--pending" : "live-pill"}>
+                {busy ? "재계산 중" : "실시간 반영"}
               </span>
-            ) : null}
-            {errorMessage ? (
-              <span className="error-pill" role="alert">
-                {errorMessage}
-              </span>
-            ) : null}
+              {diagnostics ? (
+                <span className="quality-pill">
+                  {diagnostics.readyForLive
+                    ? "실서비스 전환 준비 완료"
+                    : diagnostics.place.configured || diagnostics.transit.configured
+                      ? "실데이터 일부 연결"
+                      : "현재 목업 provider"}
+                </span>
+              ) : null}
+              {errorMessage ? (
+                <span className="error-pill" role="alert">
+                  {errorMessage}
+                </span>
+              ) : null}
+            </div>
           </div>
-        </div>
 
-        <div className="workspace__grid" aria-busy={busy}>
-          <section className="workspace__main">
+          <div className="workspace__grid" aria-busy={busy}>
+            <section className="workspace__main">
             <article className="work-card work-card--recommendation">
               <div className="planner-top">
                 <div>
@@ -1332,10 +1333,10 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 ))}
               </div>
             </article>
-          </section>
+            </section>
 
-          <aside className="workspace__side">
-            <article className="work-card">
+            <aside className="workspace__side">
+              <article className="work-card">
               <div className="score-head">
                 <div>
                   <p className="eyebrow">Course quality</p>
@@ -1364,7 +1365,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               </div>
             </article>
 
-            <article className="work-card work-card--accent">
+              <article className="work-card work-card--accent">
               <p className="eyebrow">Smart fallback</p>
               <h4>{planner.altPanel.title}</h4>
               <p className="subtle-text">{planner.altPanel.copy}</p>
@@ -1385,25 +1386,27 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               </div>
             </article>
 
-            <article className="work-card">
+              <article className="work-card">
               <p className="eyebrow">Why this works</p>
               <h4>추천 이유</h4>
               <p className="subtle-text">{planner.reason}</p>
-            </article>
-          </aside>
+              </article>
+            </aside>
+          </div>
         </div>
       </section>
 
       <section id="personalize" className="profile-zone">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Preference profile</p>
-            <h3>많이 묻지 않아도 성향이 드러나게</h3>
+        <div className="section-panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Preference profile</p>
+              <h3>많이 묻지 않아도 성향이 드러나게</h3>
+            </div>
           </div>
-        </div>
 
-        <div className="profile-zone__grid">
-          <article className="profile-card profile-card--identity">
+          <div className="profile-zone__grid">
+            <article className="profile-card profile-card--identity">
             <p className="eyebrow">Tonight fit</p>
             <h4>{planner.profile.headline}</h4>
             <p className="subtle-text">{planner.profile.description}</p>
@@ -1416,7 +1419,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </div>
           </article>
 
-          <article className="profile-card">
+            <article className="profile-card">
             <p className="eyebrow">Preference controls</p>
             <h4>오늘 기준만 빠르게 조정</h4>
             <div className="control-stack">
@@ -1503,7 +1506,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </div>
           </article>
 
-          <article className="profile-card">
+            <article className="profile-card">
             <p className="eyebrow">Mode behavior</p>
             <h4>{mode === "p" ? "즉흥형을 위한 안내형 UX" : "통제형을 위한 편집형 UX"}</h4>
             <ul className="bullet-list">
@@ -1513,7 +1516,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </ul>
           </article>
 
-          <article className="profile-card profile-card--wide">
+            <article className="profile-card profile-card--wide">
             <div className="profile-wide__header">
               <div>
                 <p className="eyebrow">Saved plans</p>
@@ -1567,20 +1570,22 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 <span>판단을 방해하지 않는 수준으로만 애니메이션 적용</span>
               </div>
             </div>
-          </article>
+            </article>
+          </div>
         </div>
       </section>
 
       <section id="modes" className="modes">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Dual experience</p>
-            <h3>P와 J를 분리해서도, 이어서도 쓰게</h3>
+        <div className="section-panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Dual experience</p>
+              <h3>P와 J를 분리해서도, 이어서도 쓰게</h3>
+            </div>
           </div>
-        </div>
 
-        <div className="modes__grid">
-          <article className={mode === "p" ? "mode-card is-active" : "mode-card"}>
+          <div className="modes__grid">
+            <article className={mode === "p" ? "mode-card is-active" : "mode-card"}>
             <div className="card-header">
               <span>P mode</span>
               <span>상황 대응</span>
@@ -1592,7 +1597,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             </p>
           </article>
 
-          <article className={mode === "j" ? "mode-card is-active" : "mode-card"}>
+            <article className={mode === "j" ? "mode-card is-active" : "mode-card"}>
             <div className="card-header">
               <span>J mode</span>
               <span>정밀 조정</span>
@@ -1602,7 +1607,8 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               사용자가 전체를 통제하고 시스템은 이동 시간과 완성도를 재계산합니다. 저장과 공유로
               확장하기 좋은 형태입니다.
             </p>
-          </article>
+            </article>
+          </div>
         </div>
       </section>
     </main>

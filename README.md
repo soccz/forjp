@@ -46,9 +46,16 @@ API 키만 넣으면 바로 live provider 경로를 탈 수 있도록 구조는 
 추천 API에서 아래 항목이 보이면 1차 전환이 정상입니다.
 
 - `providerLabel`에 `Kakao Local` 또는 `ODsay transit` 포함
+- `provider`가 `live`, `hybrid`, `mock` 중 하나로 내려옴
 - `providers[].mode`가 `live`
 - `candidates[].source`가 `kakao`
 - 같은 카테고리 안에 여러 후보가 내려와 `alternativeSuggestion`이 붙을 수 있음
+
+해석 기준:
+
+- `live`: 현재 후보가 전부 실데이터
+- `hybrid`: 일부는 실데이터, 일부는 fallback
+- `mock`: 전부 목업 fallback
 
 실데이터 장소 후보에는 기본 품질 필터가 적용됩니다.
 
