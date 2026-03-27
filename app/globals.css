@@ -1663,6 +1663,8 @@ button {
   --surface-dark: #221d1a;
   --surface-dark-soft: #2c2622;
   --line: rgba(49, 38, 31, 0.09);
+  --border: rgba(49, 38, 31, 0.09);
+  --white: #ffffff;
   --ink: #191513;
   --muted: #736860;
   --muted-on-dark: rgba(255, 247, 242, 0.74);

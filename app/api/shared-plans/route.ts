@@ -32,18 +32,19 @@ export async function PATCH(req: Request) {
 export async function POST(request: Request) {
   try {
     const { plan, surpriseMode } = await request.json() as { plan: unknown; surpriseMode?: boolean };
-    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
     const payload = { plan, surpriseMode: surpriseMode ?? false, createdAt: new Date().toISOString() };
 
     if (hasSupabaseServerConfig()) {
       const supabase = getSupabaseAdminClient();
       if (supabase) {
-        await supabase.from("shared_plans").insert({ id, payload });
+        const { error } = await supabase.from("shared_plans").insert({ id, payload });
+        if (error) return NextResponse.json({ error: "share_failed" }, { status: 500 });
       }
     }
 
-    const origin = request.headers.get("origin") ?? "";
-    return NextResponse.json({ id, url: `${origin}/?s=${id}` });
+    const serverOrigin = new URL(request.url).origin;
+    return NextResponse.json({ id, url: `${serverOrigin}/?s=${id}` });
   } catch {
     return NextResponse.json({ error: "share_failed" }, { status: 500 });
   }

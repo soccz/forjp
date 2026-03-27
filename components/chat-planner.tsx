@@ -116,6 +116,9 @@ export function ChatPlanner({ onDone }: Props) {
           setVariants(v);
           setStep("done");
           pushAiMessage("수정된 코스 5가지를 준비했어요. 마음에 드는 걸 골라주세요.");
+        }).catch(() => {
+          setStep("done");
+          pushAiMessage("코스를 다시 만들지 못했어요. 잠시 후 다시 시도해주세요.");
         });
       }, 600);
       setInputValue("");
@@ -146,7 +149,7 @@ export function ChatPlanner({ onDone }: Props) {
         collected: Partial<ChatCollected>;
       };
 
-      setCollected(data.collected);
+      setCollected((prev) => ({ ...prev, ...data.collected }));
       setStep(data.nextStep);
 
       setTimeout(() => {
@@ -163,6 +166,11 @@ export function ChatPlanner({ onDone }: Props) {
               occasionContext: data.collected.occasionContext,
             };
             void fetchAndBuildVariants(finalCollected).then((v) => {
+              if (!v.length) {
+                setStep("done");
+                pushAiMessage("코스를 만들지 못했어요. 잠시 후 다시 시도해주세요.");
+                return;
+              }
               setVariants(v);
               setStep("done");
               const occasionGreeting = finalCollected.occasionContext === "기념일"
@@ -171,6 +179,9 @@ export function ChatPlanner({ onDone }: Props) {
                 ? "설레는 첫 만남을 위한 코스를 준비했어요. "
                 : "";
               pushAiMessage(`${occasionGreeting}5가지 코스를 준비했어요. 마음에 드는 걸 고르면 직접 수정도 할 수 있어요.`);
+            }).catch(() => {
+              setStep("done");
+              pushAiMessage("코스를 만들지 못했어요. 잠시 후 다시 시도해주세요.");
             });
           }, 1200);
         }
@@ -263,6 +274,7 @@ export function ChatPlanner({ onDone }: Props) {
                       vibe: collected.vibe ?? "quiet",
                       budgetCap: collected.budgetCap ?? 80000,
                       categories: DEFAULT_CATEGORIES,
+                      occasionContext: collected.occasionContext,
                     },
                     variants
                   ), 300);

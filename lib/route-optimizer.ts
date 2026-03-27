@@ -63,6 +63,18 @@ export function optimizeRoute(
     };
   }
 
+  // Brute-force is O(n!): cap at 8 venues to prevent browser hang
+  if (venues.length > 8) {
+    const d = totalRouteKm(origin, venues);
+    return {
+      optimalOrder: venues,
+      currentDistanceKm: d,
+      optimalDistanceKm: d,
+      savingMinutes: 0,
+      isAlreadyOptimal: true,
+    };
+  }
+
   const currentDistanceKm = totalRouteKm(origin, venues);
   const perms = permutations(venues);
 

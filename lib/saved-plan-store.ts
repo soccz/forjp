@@ -93,10 +93,11 @@ export async function createSavedPlan(ownerKey: string, plan: SavedPlan) {
 
   if (!countError && existing && existing.length >= 5) {
     const toDelete = existing.slice(0, existing.length - 4);
-    await supabase
+    const { error: deleteError } = await supabase
       .from("saved_plans")
       .delete()
       .in("id", toDelete.map((r) => r.id));
+    if (deleteError) throw deleteError;
   }
 
   const { error } = await supabase.from("saved_plans").insert(payload);
