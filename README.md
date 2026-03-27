@@ -1,104 +1,217 @@
-# COUPLE
+# Couple — 서울 데이트 플래너
 
-서울 데이트 코스 플래너 웹앱입니다.
-AI 채팅으로 취향을 수집하고, 5가지 테마 코스를 추천하며, 파트너와 공유하고 함께 투표할 수 있습니다.
+> AI와 함께 설계하는 서울 맞춤 데이트 코스
 
-## 주요 기능
+**P mode** — AI 채팅으로 취향을 물어보고 코스를 자동 설계
+**J mode** — 직접 지역·카테고리를 골라 동선을 최적화
 
-- **P mode**: AI 채팅 플로우로 지역·시간·분위기·예산 수집 → 5가지 테마 코스 생성
-- **J mode**: 고정 시나리오 기반 플래너 (퇴근 후, 기념일, 우천, 소개팅)
-- **코스 테마**: 효율 / 무드 / 여유 / 로맨틱 / 발견 5종
-- **경로 최적화**: Haversine 기반 최단 동선 자동 계산
-- **날씨 감지**: 비 오는 날 실내 장소 자동 우선 추천
-- **타임라인**: 코스 전체 시간 흐름 시각화
-- **서프라이즈 모드**: 파트너에게 플랜 내용 숨김 공유
-- **파트너 투표**: 공유 링크로 각 코스 단계별 love / okay / skip 투표
-- **데이트 회고**: 코스 진행 중 체크인 및 완료 후 별점 기록
-- **장소 직접 추가**: 커스텀 장소를 코스에 삽입
-- **빠른 추천**: 현재 시간 기반 즉시 코스 생성
-- **가성비 점수**: 체류 시간 대비 비용으로 장소별 밀도 계산
+5가지 테마 플랜 · 날씨 감지 · 코스 공유 · 파트너 투표 · 카카오 로그인
 
-## 실행
+---
+
+## 앱 흐름
+
+```mermaid
+flowchart TD
+    Start([앱 진입]) --> Mode{모드 선택}
+
+    Mode -->|P mode| Chat[AI 채팅]
+    Chat --> Q1[지역 선택]
+    Q1 --> Q2[시간대]
+    Q2 --> Q3[분위기]
+    Q3 --> Q4[예산]
+    Q4 --> Gen[코스 생성]
+    Gen --> Variants[5가지 테마 플랜]
+
+    Mode -->|J mode| Manual[지역 · 카테고리 직접 선택]
+    Manual --> Rec[추천 후보 목록]
+    Rec --> Pick[장소 선택]
+    Pick --> Route[동선 최적화]
+    Route --> Variants
+
+    Variants --> Select[플랜 확정]
+    Select --> Share[코스 공유]
+    Share --> Vote[파트너 투표]
+    Vote --> Done([데이트 시작])
+```
+
+---
+
+## P mode — AI 채팅 상태 흐름
+
+```mermaid
+stateDiagram-v2
+    [*] --> greeting : 앱 진입
+    greeting --> district : 지역 입력
+    district --> time : 시간 입력
+    time --> vibe : 분위기 선택
+    vibe --> budget : 예산 입력
+    budget --> generating : 코스 생성 중
+    generating --> done : 완료
+    done --> refining : 수정 요청
+    refining --> generating : 재생성
+    done --> [*] : 플랜 확정
+```
+
+---
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    subgraph Client["클라이언트"]
+        UI[date-planner-app]
+        Chat[chat-planner]
+    end
+
+    subgraph API["Next.js API Routes"]
+        REC["recommendations"]
+        CHAT["chat"]
+        PLAN["planner"]
+        SHARE["shared-plans"]
+        WEATHER["weather"]
+    end
+
+    subgraph Providers["Data Providers"]
+        KAKAO[Kakao Local API]
+        ODSAY[ODsay 대중교통]
+        CLAUDE[Claude AI]
+        METRO[Open-Meteo 날씨]
+        MOCK[Mock Fallback]
+    end
+
+    subgraph Storage["저장 계층"]
+        SB[(Supabase)]
+        LOCAL[(LocalStorage)]
+    end
+
+    UI --> REC
+    UI --> PLAN
+    UI --> SHARE
+    UI --> WEATHER
+    Chat --> CHAT
+
+    REC --> KAKAO
+    REC --> ODSAY
+    REC --> MOCK
+    CHAT --> CLAUDE
+    WEATHER --> METRO
+    WEATHER --> SB
+
+    REC --> SB
+    SHARE --> SB
+    PLAN --> LOCAL
+    PLAN --> SB
+```
+
+---
+
+## 5가지 테마 플랜
+
+```mermaid
+flowchart LR
+    Cand[장소 후보] --> E[효율형]
+    Cand --> M[감성형]
+    Cand --> R[여유형]
+    Cand --> RO[로맨틱형]
+    Cand --> D[발견형]
+```
+
+---
+
+## 시작하기
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
+npm run build      # 프로덕션 빌드 검증
 ```
 
-프로덕션 빌드:
-
-```bash
-npm run build
-npm run start
-```
+---
 
 ## 환경 변수
 
-`.env.example` 기준으로 `.env.local`을 작성합니다.
+`.env.local`을 생성하고 아래를 채웁니다.
+**비워두면 앱은 mock provider와 로컬 저장으로 자동 동작합니다.**
 
-```
-# 장소 검색 실데이터 (없으면 mock fallback)
-KAKAO_REST_API_KEY=
+```bash
+# ── 장소 검색 ──────────────────────────────
+KAKAO_REST_API_KEY=          # 없으면 mock 장소 데이터
 
-# 대중교통 경로 계산 실데이터 (없으면 mock fallback)
-ODSAY_API_KEY=
+# ── 대중교통 ───────────────────────────────
+ODSAY_API_KEY=               # 없으면 mock 이동 시간
 
-# 저장·캐시·공유 계층 (없으면 로컬 저장 fallback)
+# ── AI 채팅 (P mode) ───────────────────────
+ANTHROPIC_API_KEY=           # 없으면 rule-based 응답
+
+# ── 저장 / 공유 / 캐시 ─────────────────────
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=   # 없으면 로컬 저장 전용
 
-# NextAuth (필수)
-NEXTAUTH_SECRET=
-NEXTAUTH_URL=http://localhost:3000
+# ── 인증 (필수) ────────────────────────────
+NEXTAUTH_SECRET=             # 아래 명령으로 생성
+NEXTAUTH_URL=https://your-domain.com
 
-# 카카오 소셜 로그인 (선택)
+# ── 카카오 로그인 (선택) ───────────────────
 KAKAO_CLIENT_ID=
 KAKAO_CLIENT_SECRET=
 NEXT_PUBLIC_KAKAO_AUTH_ENABLED=false
-
-# 카카오 공유 SDK (선택)
 NEXT_PUBLIC_KAKAO_JS_KEY=
-
-# AI 채팅 (없으면 mock provider)
-ANTHROPIC_API_KEY=
 ```
 
-환경 변수 없이도 앱은 mock provider + 로컬 저장으로 전부 동작합니다.
+> `NEXTAUTH_SECRET` 생성:
+> ```bash
+> node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+> ```
 
-## Supabase 설정
+---
 
-저장·캐시·공유 기능을 활성화하려면 [supabase/schema.sql](supabase/schema.sql)을 Supabase 프로젝트에 적용합니다.
+## 기능 상태
 
-적용 테이블:
+| 기능 | 활성 조건 | 미설정 시 |
+|------|-----------|-----------|
+| 장소 검색 | `KAKAO_REST_API_KEY` | mock 데이터 |
+| 대중교통 | `ODSAY_API_KEY` | mock 이동 시간 |
+| AI 채팅 | `ANTHROPIC_API_KEY` | rule-based 응답 |
+| 날씨 감지 | — (Open-Meteo, 무료) | 항상 동작 |
+| 코스 저장·공유 | Supabase 3개 변수 | 로컬 저장 |
+| 카카오 로그인 | `KAKAO_*` + `ENABLED=true` | 로그인 비활성 |
 
-- `saved_plans` — 코스 저장
-- `api_cache` — 추천 결과 캐시 (30분)
-- `place_review_summaries` — 장소 리뷰 요약
-- `shared_plans` — 파트너 공유 및 투표
+---
+
+## Supabase
+
+[`supabase/schema.sql`](supabase/schema.sql)을 Supabase SQL 에디터에서 실행합니다.
+
+| 테이블 | 용도 |
+|--------|------|
+| `saved_plans` | 코스 저장 |
+| `api_cache` | 추천·날씨 캐시 (30분) |
+| `place_review_summaries` | 장소 리뷰 요약 |
+| `shared_plans` | 코스 공유 및 파트너 투표 |
+
+---
 
 ## API
 
-| 엔드포인트 | 설명 |
-|---|---|
-| `GET /api/health` | 환경 설정 상태 및 실서비스 전환 가능 여부 |
-| `GET /api/diagnostics` | provider 상태 상세 |
-| `POST /api/chat` | AI 채팅 플로우 (단계별 취향 수집) |
-| `POST /api/recommendations` | 장소 추천 후보 목록 반환 |
-| `POST /api/custom-plan` | 커스텀 추천 → 플래너 구조 변환 |
-| `POST /api/planner` | 시나리오 기반 플래너 재계산 |
-| `GET/POST /api/saved-plans` | 코스 저장 / 조회 |
-| `GET/POST/PATCH /api/shared-plans` | 공유 링크 생성·조회·파트너 투표 |
-| `GET /api/weather` | 서울 현재 날씨 (30분 캐시) |
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/api/health` | GET | 환경 구성 상태 |
+| `/api/diagnostics` | GET | provider 상태 상세 |
+| `/api/chat` | POST | AI 채팅 (P mode) |
+| `/api/recommendations` | POST | 장소 추천 후보 |
+| `/api/custom-plan` | POST | 커스텀 추천 → 플래너 변환 |
+| `/api/planner` | POST | 시나리오 기반 플래너 |
+| `/api/saved-plans` | GET / POST | 코스 저장·조회 |
+| `/api/shared-plans` | GET / POST / PATCH | 코스 공유·파트너 투표 |
+| `/api/weather` | GET | 서울 현재 날씨 |
 
-## 현재 상태
+---
 
-| 기능 | 상태 |
-|---|---|
-| 장소 검색 | `KAKAO_REST_API_KEY` 설정 시 실데이터, 없으면 mock |
-| 대중교통 | `ODSAY_API_KEY` 설정 시 실데이터, 없으면 mock |
-| AI 채팅 | `ANTHROPIC_API_KEY` 설정 시 Claude, 없으면 mock |
-| 날씨 | Open-Meteo 무료 API (항상 실데이터) |
-| 리뷰 요약 | Supabase `place_review_summaries` 또는 mock |
-| 저장·공유 | Supabase 설정 시 DB, 없으면 localStorage |
-| 카카오 로그인 | `NEXT_PUBLIC_KAKAO_AUTH_ENABLED=true` + 키 설정 시 활성 |
+## Live 전환 체크리스트
+
+1. 환경 변수 설정 → `npm run build`
+2. `GET /api/health` — `readyForLive: true` 확인
+3. `GET /api/diagnostics` — provider 상태 확인
+4. `POST /api/recommendations` — `candidates[].source: "kakao"` 확인
