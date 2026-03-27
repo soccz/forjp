@@ -65,11 +65,11 @@ flowchart LR
     end
 
     subgraph API["Next.js API Routes"]
-        REC[/recommendations]
-        CHAT[/chat]
-        PLAN[/planner]
-        SHARE[/shared-plans]
-        WEATHER[/weather]
+        REC["recommendations"]
+        CHAT["chat"]
+        PLAN["planner"]
+        SHARE["shared-plans"]
+        WEATHER["weather"]
     end
 
     subgraph Providers["Data Providers"]
@@ -110,11 +110,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Cand[장소 후보] --> E[효율형\n이동 최소]
-    Cand --> M[감성형\n분위기 우선]
-    Cand --> R[여유형\n체류 중심]
-    Cand --> RO[로맨틱형\n감도 최대]
-    Cand --> D[발견형\n새로운 경험]
+    Cand[장소 후보] --> E[효율형]
+    Cand --> M[감성형]
+    Cand --> R[여유형]
+    Cand --> RO[로맨틱형]
+    Cand --> D[발견형]
 ```
 
 ---
