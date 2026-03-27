@@ -12,6 +12,7 @@ type SavedPlanRow = {
   preferences: SavedPlan["preferences"];
   step_ids: string[];
   swap_alternative: boolean;
+  custom_config?: SavedPlan["customConfig"] | null;
 };
 
 function mapRowToSavedPlan(row: SavedPlanRow): SavedPlan {
@@ -25,6 +26,7 @@ function mapRowToSavedPlan(row: SavedPlanRow): SavedPlan {
     preferences: row.preferences,
     stepIds: row.step_ids,
     swapAlternative: row.swap_alternative,
+    customConfig: row.custom_config ?? undefined,
   };
 }
 
@@ -41,7 +43,7 @@ export async function listSavedPlans(ownerKey: string) {
 
   const { data, error } = await supabase
     .from("saved_plans")
-    .select("id, owner_key, scenario_id, label, mode, score, saved_at, preferences, step_ids, swap_alternative")
+    .select("id, owner_key, scenario_id, label, mode, score, saved_at, preferences, step_ids, swap_alternative, custom_config")
     .eq("owner_key", ownerKey)
     .order("saved_at", { ascending: false })
     .limit(5);
@@ -78,7 +80,22 @@ export async function createSavedPlan(ownerKey: string, plan: SavedPlan) {
     preferences: plan.preferences,
     step_ids: plan.stepIds,
     swap_alternative: plan.swapAlternative,
+    custom_config: plan.customConfig ?? null,
   };
+
+  const { data: existing, error: countError } = await supabase
+    .from("saved_plans")
+    .select("id, saved_at")
+    .eq("owner_key", ownerKey)
+    .order("saved_at", { ascending: true });
+
+  if (!countError && existing && existing.length >= 5) {
+    const toDelete = existing.slice(0, existing.length - 4);
+    await supabase
+      .from("saved_plans")
+      .delete()
+      .in("id", toDelete.map((r) => r.id));
+  }
 
   const { error } = await supabase.from("saved_plans").insert(payload);
 

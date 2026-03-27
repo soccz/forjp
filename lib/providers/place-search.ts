@@ -7,6 +7,10 @@ const districtCenters: Record<string, { latitude: number; longitude: number }> =
   홍대: { latitude: 37.5563, longitude: 126.9236 },
   강남: { latitude: 37.4979, longitude: 127.0276 },
   을지로: { latitude: 37.5663, longitude: 126.9911 },
+  이태원: { latitude: 37.5340, longitude: 126.9947 },
+  합정: { latitude: 37.5497, longitude: 126.9142 },
+  건대: { latitude: 37.5403, longitude: 127.0699 },
+  잠실: { latitude: 37.5133, longitude: 127.1001 },
 };
 
 const categoryQueryMap: Record<ActivityCategory, string> = {
@@ -15,7 +19,7 @@ const categoryQueryMap: Record<ActivityCategory, string> = {
   dinner: "식당",
   bar: "바",
   gallery: "전시",
-  walk: "산책",
+  walk: "공원",
 };
 
 const maxDistanceByCategory: Record<ActivityCategory, number> = {
@@ -31,7 +35,7 @@ const blockedKeywordMap: Record<ActivityCategory, string[]> = {
   movie: ["노래방", "오락실", "PC방", "당구", "볼링"],
   cafe: ["편의점", "주유소", "셀프", "스터디카페", "만화카페"],
   dinner: ["편의점", "마트", "백화점", "푸드코트", "구내식당"],
-  bar: ["편의점", "포차거리", "노래방", "클럽"],
+  bar: ["편의점", "포차거리", "노래방", "노래바", "클럽"],
   gallery: ["카페", "식당", "호텔", "웨딩", "학원"],
   walk: ["호텔", "주차장", "아파트", "오피스텔"],
 };
@@ -92,6 +96,45 @@ function getTransitModeByDistance(distance: number): VenueCandidate["transitMode
   return "bus";
 }
 
+const quietKeywords = ["북카페", "티룸", "갤러리카페", "독립", "서점", "조용", "한적", "소규모", "아늑", "북"];
+const noisyKeywords = ["루프탑", "브런치", "파티", "클럽", "대형", "프랜차이즈", "뷔페"];
+const visualKeywords = ["루프탑", "뷰", "야경", "전망", "인스타", "포토", "감성", "뷰맛집", "사진"];
+const visualCategoryKeywords = ["갤러리", "아트", "전시", "미술"];
+
+function inferQuietScore(category: ActivityCategory, document: KakaoDocument): number {
+  const haystack = `${document.place_name} ${document.category_name}`.toLowerCase();
+  const baseScore: Record<ActivityCategory, number> = {
+    cafe: 3, dinner: 3, bar: 2, gallery: 5, walk: 4, movie: 4,
+  };
+  let score = baseScore[category] ?? 3;
+  if (quietKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) score += 2;
+  if (noisyKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) score -= 1;
+  const distance = Number(document.distance ?? "800");
+  if (distance > 1200) score += 1;
+  return Math.min(5, Math.max(1, score));
+}
+
+function inferVisualScore(category: ActivityCategory, document: KakaoDocument): number {
+  const haystack = `${document.place_name} ${document.category_name}`.toLowerCase();
+  const baseScore: Record<ActivityCategory, number> = {
+    cafe: 3, dinner: 3, bar: 3, gallery: 5, walk: 3, movie: 3,
+  };
+  let score = baseScore[category] ?? 3;
+  if (visualKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) score += 2;
+  if (visualCategoryKeywords.some((kw) => haystack.includes(kw.toLowerCase()))) score += 1;
+  return Math.min(5, Math.max(1, score));
+}
+
+function buildKakaoDescription(category: ActivityCategory, document: KakaoDocument, travelMinutes: number): string {
+  const tailCategory = document.category_name.split(">").at(-1)?.trim();
+  const addressPart = document.address_name.split(" ").slice(0, 3).join(" ");
+  const travelPart = travelMinutes <= 5 ? "도보 바로" : `도보 약 ${travelMinutes}분`;
+  if (tailCategory && tailCategory !== categoryQueryMap[category]) {
+    return `${addressPart}에 위치한 ${tailCategory}. ${travelPart} 거리입니다.`;
+  }
+  return `${addressPart}에 위치한 장소. ${travelPart} 거리입니다.`;
+}
+
 function buildKakaoCandidate(params: {
   category: ActivityCategory;
   district: string;
@@ -107,14 +150,14 @@ function buildKakaoCandidate(params: {
     name: params.document.place_name,
     category: params.category,
     district: params.district,
-    concept: params.document.category_name,
-    description: `${params.document.address_name} 기준으로 찾은 ${categoryQueryMap[params.category]} 후보`,
+    concept: tailCategory,
+    description: buildKakaoDescription(params.category, params.document, travelMinutes),
     transitMode: getTransitModeByDistance(distance),
     travelMinutes,
     stayMinutes: getStayMinutes(params.category),
     estimatedCost: getEstimatedCost(params.category),
-    quietScore: params.category === "cafe" ? 4 : params.category === "dinner" ? 4 : 3,
-    visualScore: params.category === "gallery" ? 5 : params.category === "bar" ? 4 : 3,
+    quietScore: inferQuietScore(params.category, params.document),
+    visualScore: inferVisualScore(params.category, params.document),
     indoor: params.category !== "walk",
     latitude: Number(params.document.y),
     longitude: Number(params.document.x),
@@ -288,6 +331,41 @@ export function resolvePlaceSearchProvider() {
   }
 
   return new MockPlaceSearchProvider();
+}
+
+export async function resolveOriginPoint(
+  originLabel: string,
+  district: string
+): Promise<{ latitude: number; longitude: number }> {
+  const fallback = districtCenters[district] ?? districtCenters["성수"];
+  const apiKey = process.env.KAKAO_REST_API_KEY;
+
+  if (!apiKey || !originLabel.trim()) {
+    return fallback;
+  }
+
+  try {
+    const searchParams = new URLSearchParams({ query: originLabel, size: "1" });
+    const response = await fetch(
+      `https://dapi.kakao.com/v2/local/search/keyword.json?${searchParams.toString()}`,
+      { headers: { Authorization: `KakaoAK ${apiKey}` }, cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      return fallback;
+    }
+
+    const payload = (await response.json()) as { documents?: KakaoDocument[] };
+    const doc = payload.documents?.[0];
+
+    if (!doc) {
+      return fallback;
+    }
+
+    return { latitude: Number(doc.y), longitude: Number(doc.x) };
+  } catch {
+    return fallback;
+  }
 }
 
 export function getPlaceProviderDiagnostics() {

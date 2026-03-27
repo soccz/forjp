@@ -8,11 +8,20 @@ create table if not exists public.saved_plans (
   saved_at timestamptz not null default now(),
   preferences jsonb not null,
   step_ids text[] not null default '{}',
-  swap_alternative boolean not null default false
+  swap_alternative boolean not null default false,
+  custom_config jsonb
 );
 
 create index if not exists saved_plans_owner_key_saved_at_idx
   on public.saved_plans (owner_key, saved_at desc);
+
+alter table public.saved_plans enable row level security;
+
+-- anon key로 직접 접근 차단 (서버에서 service role key로만 접근)
+create policy "deny_anon_access" on public.saved_plans
+  as restrictive
+  to anon
+  using (false);
 
 create table if not exists public.api_cache (
   cache_key text primary key,
@@ -34,3 +43,12 @@ create table if not exists public.place_review_summaries (
 
 create index if not exists place_review_summaries_district_idx
   on public.place_review_summaries (district);
+
+create table if not exists public.shared_plans (
+  id text primary key,
+  payload jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists shared_plans_created_at_idx
+  on public.shared_plans (created_at desc);

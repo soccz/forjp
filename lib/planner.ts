@@ -139,7 +139,7 @@ function computeScoresForBaseMood(
   const mood = clamp(baseMood + flowBonus - taxiCount + vibeBonus + indoorBonus, 76, 98);
   const accessibility = clamp(84 + lowWalkCount * 4 - taxiCount * 2 + indoorBonus - walkPenalty, 70, 99);
   const overall = clamp(
-    Math.round(mobility * 0.32 + mood * 0.28 + budget * 0.2 + accessibility * 0.2 + trustAverage * 0.08),
+    Math.round(mobility * 0.30 + mood * 0.27 + budget * 0.20 + accessibility * 0.20 + trustAverage * 0.03),
     72,
     98
   );

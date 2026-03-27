@@ -241,3 +241,39 @@ export type RecommendationAlternative = {
   detail: string;
   reason: string;
 };
+
+// Chat (P mode)
+export type ChatMessage = {
+  id: string;
+  role: "ai" | "user";
+  content: string;
+};
+
+export type ChatStep =
+  | "greeting"
+  | "district"
+  | "time"
+  | "vibe"
+  | "budget"
+  | "generating"
+  | "done";
+
+export type ChatCollected = {
+  district: string;
+  startTime: string;
+  vibe: VibePreference;
+  budgetCap: number;
+  categories: ActivityCategory[];
+};
+
+// Plan variants (P mode results)
+export type PlanVariantTheme = "efficient" | "mood" | "relaxed";
+
+export type PlanVariant = {
+  theme: PlanVariantTheme;
+  label: string;
+  tagline: string;
+  candidates: VenueCandidate[];
+  totalCost: number;
+  totalMinutes: number;
+};

@@ -3,10 +3,10 @@ import {
   buildPlaceFallbackStatus,
   getPlaceProviderDiagnostics,
   resolvePlaceSearchProvider,
+  resolveOriginPoint,
 } from "@/lib/providers/place-search";
 import {
   buildTransitFallbackStatus,
-  getOriginPoint,
   getTransitProviderDiagnostics,
   resolveTransitProvider,
 } from "@/lib/providers/transit";
@@ -419,9 +419,18 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
   const reviewProvider = resolveReviewProvider();
   const providerStatuses: ProviderStatus[] = [];
 
+  // place search와 origin geocoding은 독립적이므로 병렬 실행
+  const [placesSettled, resolvedOrigin] = await Promise.all([
+    placeProvider.search(input).then(
+      (result) => ({ ok: true as const, value: result }),
+      () => ({ ok: false as const })
+    ),
+    resolveOriginPoint(input.originLabel, input.district),
+  ]);
+
   let candidates: VenueCandidate[];
-  try {
-    candidates = await placeProvider.search(input);
+  if (placesSettled.ok) {
+    candidates = placesSettled.value;
     const hasPlaceFallback = placeProvider.isLive && candidates.some((candidate) => candidate.source === "mock");
     providerStatuses.push({
       stage: "place",
@@ -433,7 +442,7 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
           ? "장소 검색에 실데이터 provider를 사용했습니다."
         : "장소 검색은 현재 목업 provider를 사용 중입니다.",
     });
-  } catch {
+  } else {
     candidates = input.categories
       .map((category) =>
         venueCandidates.find(
@@ -446,7 +455,7 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
 
   let withTransit: VenueCandidate[];
   try {
-    withTransit = await transitProvider.applyTravelTimes(getOriginPoint(input.district), candidates);
+    withTransit = await transitProvider.applyTravelTimes(resolvedOrigin, candidates);
     providerStatuses.push({
       stage: "transit",
       activeProvider: transitProvider.label,

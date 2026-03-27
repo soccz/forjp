@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import type {
   ActivityCategory,
+  ChatCollected,
   ProviderDiagnostics,
   PlannerResult,
   PlannerMode,
+  PlanVariant,
   RecommendationResponse,
   SavedPlan,
   SavedPlansResponse,
@@ -15,6 +17,16 @@ import type {
   VibePreference,
   WalkPreference,
 } from "@/lib/types";
+import { AuthButton } from "@/components/auth-button";
+import { ChatPlanner } from "@/components/chat-planner";
+import { optimizeRoute, type RouteOptimizationResult } from "@/lib/route-optimizer";
+import { buildPlanVariants } from "@/lib/plan-variants";
+import { OnboardingModal } from "@/components/onboarding-modal";
+import { TimePicker } from "@/components/time-picker";
+import { CourseProgress, type CourseProgressState } from "@/components/course-progress";
+import { KakaoShareButton } from "@/components/kakao-share-button";
+import { VenueInputForm, type CustomVenueInput } from "@/components/venue-input-form";
+import type { VenueCandidate } from "@/lib/types";
 
 type DatePlannerAppProps = {
   initialPlanner: PlannerResult;
@@ -35,7 +47,7 @@ const vibeChoices: { value: VibePreference; label: string }[] = [
   { value: "cinematic", label: "무드 우선" },
   { value: "playful", label: "가벼운 템포" },
 ];
-const districtChoices = ["성수", "홍대", "강남", "을지로"];
+const districtChoices = ["성수", "홍대", "강남", "을지로", "이태원", "합정", "건대", "잠실"];
 const categoryChoices: { value: ActivityCategory; label: string }[] = [
   { value: "movie", label: "영화" },
   { value: "cafe", label: "카페" },
@@ -262,15 +274,37 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   const [isRecommendationLoading, setIsRecommendationLoading] = useState(false);
   const [diagnostics, setDiagnostics] = useState<ProviderDiagnostics | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [customVenues, setCustomVenues] = useState<VenueCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [activePanel, setActivePanel] = useState<AppPanel>("planner");
   const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<WorkspacePanel>("plan");
   const hasAutoLoaded = useRef(false);
   const busy = isLoading || isPending;
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // P mode chat & plan variants
+  const [chatCompleted, setChatCompleted] = useState(false);
+  const [planVariants, setPlanVariants] = useState<PlanVariant[]>([]);
+
+  // J mode: route optimization
+  const [routeOptimization, setRouteOptimization] = useState<RouteOptimizationResult | null>(null);
+
+  // J mode: per-step alternatives
+  const [expandedAltStepId, setExpandedAltStepId] = useState<string | null>(null);
+
+  // Start time
+  const [startTime, setStartTime] = useState("19:00");
+
+  // Course progress
+  const [courseProgress, setCourseProgress] = useState<CourseProgressState | null>(null);
 
   useEffect(() => {
+    if (!window.localStorage.getItem("couple.onboarded")) {
+      setShowOnboarding(true);
+    }
     try {
       const stored = window.localStorage.getItem(SAVED_PLANS_KEY);
       if (!stored) {
@@ -617,6 +651,32 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       });
       setRecommendation(nextRecommendation);
       setRecommendationError(null);
+
+      // Compute route optimization from loaded candidates
+      const districtCenters: Record<string, { latitude: number; longitude: number }> = {
+        성수: { latitude: 37.5446, longitude: 127.0557 },
+        홍대: { latitude: 37.5563, longitude: 126.9236 },
+        강남: { latitude: 37.4979, longitude: 127.0276 },
+        을지로: { latitude: 37.5663, longitude: 126.9911 },
+        이태원: { latitude: 37.5340, longitude: 126.9947 },
+        합정: { latitude: 37.5497, longitude: 126.9142 },
+        건대: { latitude: 37.5403, longitude: 127.0699 },
+        잠실: { latitude: 37.5133, longitude: 127.1001 },
+      };
+      const origin = districtCenters[nextDistrict] ?? districtCenters["성수"];
+      const perCategory = nextCategories
+        .map((cat) => nextRecommendation.candidates.find((c) => c.category === cat))
+        .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined);
+      if (perCategory.length > 1) {
+        setRouteOptimization(optimizeRoute(origin, perCategory));
+      } else {
+        setRouteOptimization(null);
+      }
+
+      // Build plan variants for P mode
+      if (nextRecommendation.candidates.length > 0) {
+        setPlanVariants(buildPlanVariants(nextRecommendation.candidates, nextCategories, origin));
+      }
     } catch {
       setRecommendationError("동적 추천을 불러오지 못했습니다.");
     } finally {
@@ -698,7 +758,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   }
 
   async function shareCurrentPlan() {
-    const params = new URLSearchParams({
+    const params = {
       district,
       origin: originLabel,
       categories: selectedCategories.join(","),
@@ -707,17 +767,78 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       walkPreference: preferences.walkPreference,
       vibePreference: preferences.vibePreference,
       indoorPriority: String(preferences.indoorPriority),
-    });
-    if (selectedCandidateIds.length) {
-      params.set("selectedIds", selectedCandidateIds.join(","));
-    }
-    const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+      ...(selectedCandidateIds.length ? { selectedIds: selectedCandidateIds.join(",") } : {}),
+    };
 
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      const res = await fetch("/api/shared-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { url: string };
+        setShareUrl(data.url);
+        setShareMessage("공유 링크가 준비됐어요.");
+        return;
+      }
+    } catch {
+      // fall through to long URL
+    }
+
+    // Fallback: long URL
+    const longParams = new URLSearchParams(params);
+    const fallbackUrl = `${window.location.origin}${window.location.pathname}?${longParams.toString()}`;
+    setShareUrl(fallbackUrl);
+    try {
+      await navigator.clipboard.writeText(fallbackUrl);
       setShareMessage("공유 링크를 복사했습니다.");
     } catch {
-      setShareMessage(`공유 링크: ${shareUrl}`);
+      setShareMessage(`공유 링크: ${fallbackUrl}`);
+    }
+  }
+
+  function handleAddCustomVenue(input: CustomVenueInput) {
+    const districtCentersLocal: Record<string, { latitude: number; longitude: number }> = {
+      성수: { latitude: 37.5446, longitude: 127.0557 },
+      홍대: { latitude: 37.5563, longitude: 126.9236 },
+      강남: { latitude: 37.4979, longitude: 127.0276 },
+      을지로: { latitude: 37.5663, longitude: 126.9911 },
+      이태원: { latitude: 37.5340, longitude: 126.9947 },
+      합정: { latitude: 37.5497, longitude: 126.9142 },
+      건대: { latitude: 37.5403, longitude: 127.0699 },
+      잠실: { latitude: 37.5133, longitude: 127.1001 },
+    };
+    const center = districtCentersLocal[district] ?? districtCentersLocal["성수"];
+
+    const newVenue: VenueCandidate = {
+      id: `custom-${Date.now()}-${customVenues.length}`,
+      name: input.name,
+      category: input.category,
+      district,
+      concept: "직접 추가한 장소",
+      description: input.notes ?? `${district}의 ${input.name}`,
+      transitMode: "walk",
+      travelMinutes: 10,
+      stayMinutes: 60,
+      estimatedCost: 15000,
+      quietScore: 3,
+      visualScore: 3,
+      indoor: input.category !== "walk",
+      latitude: center.latitude + (Math.random() - 0.5) * 0.01,
+      longitude: center.longitude + (Math.random() - 0.5) * 0.01,
+      source: "mock",
+      tags: ["직접 추가", input.category],
+    };
+
+    const nextCustomVenues = [...customVenues, newVenue];
+    setCustomVenues(nextCustomVenues);
+
+    const nextIds = [...selectedCandidateIds, newVenue.id];
+    setSelectedCandidateIds(nextIds);
+
+    if (!selectedCategories.includes(input.category)) {
+      setSelectedCategories([...selectedCategories, input.category]);
     }
   }
 
@@ -734,6 +855,15 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   }
 
   return (
+    <>
+      {showOnboarding && (
+        <OnboardingModal
+          onDismiss={() => {
+            window.localStorage.setItem("couple.onboarded", "1");
+            setShowOnboarding(false);
+          }}
+        />
+      )}
     <main className="shell">
       <header className="masthead">
         <div className="brand">
@@ -766,6 +896,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
             모드
           </button>
         </nav>
+        <AuthButton />
       </header>
 
       <section className="hero">
@@ -964,6 +1095,41 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
           <div className="workspace__grid" aria-busy={busy}>
             {activeWorkspacePanel === "recommend" ? (
             <article className="work-card work-card--recommendation">
+              {mode === "p" && !chatCompleted ? (
+                <div>
+                  <div className="planner-top">
+                    <div>
+                      <p className="eyebrow">P 모드</p>
+                      <h4>대화로 코스 만들기</h4>
+                      <p className="subtle-text">
+                        몇 가지 질문에 답하면 동선 최적화된 코스를 추천해드려요.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="button button--ghost"
+                      onClick={() => setChatCompleted(true)}
+                    >
+                      직접 설정하기
+                    </button>
+                  </div>
+                  <ChatPlanner
+                    onDone={(collected: ChatCollected, variants: PlanVariant[]) => {
+                      setChatCompleted(true);
+                      setPlanVariants(variants);
+                      setDistrict(collected.district);
+                      setSelectedCategories(collected.categories);
+                      setPreferences({
+                        ...preferences,
+                        budgetCap: collected.budgetCap,
+                        vibePreference: collected.vibe,
+                      });
+                      setActiveWorkspacePanel("plan");
+                    }}
+                  />
+                </div>
+              ) : (
+              <>
               <div className="planner-top">
                 <div>
                   <p className="eyebrow">추천 엔진</p>
@@ -1079,6 +1245,14 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   />
                 </div>
                 <div className="control-group">
+                  <span>출발 시간</span>
+                  <TimePicker
+                    value={startTime}
+                    onChange={setStartTime}
+                    disabled={isRecommendationLoading}
+                  />
+                </div>
+                <div className="control-group">
                   <span>지역</span>
                   <div className="choice-row">
                     {districtChoices.map((choice) => (
@@ -1120,6 +1294,30 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 </div>
               </div>
 
+              <VenueInputForm onAdd={handleAddCustomVenue} />
+              {customVenues.length > 0 ? (
+                <div className="custom-venues-list">
+                  <p className="eyebrow">직접 추가한 장소</p>
+                  {customVenues.map((v) => (
+                    <div key={v.id} className="custom-venue-item">
+                      <span>{v.name}</span>
+                      <span className="token token--muted">{v.category}</span>
+                      <button
+                        type="button"
+                        className="button button--ghost"
+                        style={{ fontSize: "0.74rem", padding: "2px 8px" }}
+                        onClick={() => {
+                          setCustomVenues((prev) => prev.filter((c) => c.id !== v.id));
+                          setSelectedCandidateIds((prev) => prev.filter((id) => id !== v.id));
+                        }}
+                      >
+                        제거
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="action-row">
                 <button
                   type="button"
@@ -1141,6 +1339,13 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 <button type="button" className="button button--ghost" onClick={shareCurrentPlan}>
                   현재 상태 공유
                 </button>
+                {shareUrl ? (
+                  <KakaoShareButton
+                    title={`${planner.label} 코스`}
+                    description={planner.steps.map((s) => s.title).join(" → ")}
+                    url={shareUrl}
+                  />
+                ) : null}
               </div>
               <p className="inline-hint">
                 지역, 활동, 취향을 바꾸면 추천이 자동으로 다시 계산됩니다.
@@ -1308,6 +1513,8 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   </div>
                 </div>
               ) : null}
+              </>
+              )}
             </article>
             ) : null}
 
@@ -1390,8 +1597,88 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 </div>
               </div>
 
+              {routeOptimization && !routeOptimization.isAlreadyOptimal && mode === "j" ? (
+                <div className="route-optimization-banner">
+                  <div>
+                    <strong>동선 최적화 가능</strong>
+                    <span>
+                      순서를 바꾸면 약 {routeOptimization.savingMinutes}분 단축돼요
+                      ({routeOptimization.optimalOrder.map((v) => v.name).join(" → ")})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="button button--soft"
+                    onClick={() => {
+                      if (!routeOptimization) return;
+                      const optimalIds = routeOptimization.optimalOrder.map((v) => v.id);
+                      void applyCustomPlan({
+                        district,
+                        originLabel,
+                        categories: selectedCategories,
+                        preferences,
+                        mode,
+                        selectedCandidateIds: optimalIds,
+                      });
+                      setRouteOptimization((prev) =>
+                        prev ? { ...prev, isAlreadyOptimal: true } : null
+                      );
+                    }}
+                    disabled={busy}
+                  >
+                    최적 순서 적용
+                  </button>
+                </div>
+              ) : null}
+
+              {courseProgress ? (
+                <CourseProgress
+                  steps={planner.steps}
+                  progress={courseProgress}
+                  onCheckIn={(stepId) => {
+                    setCourseProgress((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            checkedInAt: { ...prev.checkedInAt, [stepId]: new Date().toISOString() },
+                          }
+                        : null
+                    );
+                  }}
+                  onNext={() => {
+                    setCourseProgress((prev) =>
+                      prev ? { ...prev, currentStepIndex: prev.currentStepIndex + 1 } : null
+                    );
+                  }}
+                  onEnd={() => setCourseProgress(null)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="button button--soft course-start-btn"
+                  onClick={() =>
+                    setCourseProgress({
+                      active: true,
+                      currentStepIndex: 0,
+                      checkedInAt: {},
+                    })
+                  }
+                >
+                  오늘 데이트 시작
+                </button>
+              )}
+
               <div className="step-list">
-                {planner.steps.map((step, index) => (
+                {planner.steps.map((step, index) => {
+                  const stepAlts = recommendation?.candidates.filter(
+                    (c) => {
+                      const catLabel = getCategoryLabel(c.category);
+                      return catLabel === step.category && c.name !== step.title;
+                    }
+                  ).slice(0, 3) ?? [];
+                  const isAltExpanded = expandedAltStepId === step.id;
+
+                  return (
                   <article key={step.id} className="step-card">
                     <div className="step-card__index">{index + 1}</div>
                     <div className="step-card__body">
@@ -1417,6 +1704,50 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                           </span>
                         ))}
                       </div>
+
+                      {stepAlts.length > 0 ? (
+                        <div className="step-alts">
+                          <button
+                            type="button"
+                            className="step-alts__toggle"
+                            onClick={() =>
+                              setExpandedAltStepId(isAltExpanded ? null : step.id)
+                            }
+                          >
+                            {isAltExpanded ? "대안 닫기" : `대안 ${stepAlts.length}개 보기`}
+                          </button>
+                          {isAltExpanded ? (
+                            <div className="step-alts__list">
+                              {stepAlts.map((alt) => (
+                                <div key={alt.id} className="step-alt-item">
+                                  <div className="step-alt-item__info">
+                                    <strong>{alt.name}</strong>
+                                    <span>
+                                      {alt.travelMinutes}분 · {alt.estimatedCost.toLocaleString("ko-KR")}원
+                                    </span>
+                                    <p>{alt.concept}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="button button--soft"
+                                    disabled={busy}
+                                    onClick={() => {
+                                      const currentId = selectedCandidateIds.find((id) =>
+                                        recommendation?.candidates.some(
+                                          (c) => c.id === id && getCategoryLabel(c.category) === step.category
+                                        )
+                                      );
+                                      applyCandidateAlternative(currentId ?? "", alt.id);
+                                    }}
+                                  >
+                                    교체
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="step-card__actions">
@@ -1440,8 +1771,44 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                       </button>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
+
+              {mode === "p" && planVariants.length > 0 ? (
+                <div className="plan-variant-section">
+                  <p className="eyebrow">다른 코스 옵션</p>
+                  <div className="plan-variant-list">
+                    {planVariants.map((variant) => (
+                      <button
+                        key={variant.theme}
+                        type="button"
+                        className="plan-variant-card"
+                        disabled={busy}
+                        onClick={() =>
+                          applyCustomPlan({
+                            district,
+                            originLabel,
+                            categories: selectedCategories,
+                            preferences,
+                            mode,
+                            selectedCandidateIds: variant.candidates.map((c) => c.id),
+                          })
+                        }
+                      >
+                        <div className="plan-variant-card__label">{variant.label}</div>
+                        <div className="plan-variant-card__tagline">{variant.tagline}</div>
+                        <div className="plan-variant-card__meta">
+                          {variant.candidates.map((c) => c.name).join(" → ")}
+                        </div>
+                        <div className="plan-variant-card__stats">
+                          {Math.round(variant.totalMinutes / 60)}시간 · {variant.totalCost.toLocaleString("ko-KR")}원
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </article>
             </section>
             ) : null}
@@ -1730,5 +2097,6 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       </section>
       ) : null}
     </main>
+    </>
   );
 }
