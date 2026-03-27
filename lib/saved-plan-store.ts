@@ -108,7 +108,7 @@ export async function createSavedPlan(ownerKey: string, plan: SavedPlan) {
   return { plan, source: "supabase" as const };
 }
 
-export function getRecentlyVisitedVenueIds(ownerKey: string, limit = 3): string[] {
+export function getRecentlyVisitedVenueIds(_ownerKey: string, limit = 3): string[] {
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
     if (!raw) return [];
@@ -123,7 +123,7 @@ export function getRecentlyVisitedVenueIds(ownerKey: string, limit = 3): string[
   }
 }
 
-export function getMostVisitedDistrict(ownerKey: string): string | null {
+export function getMostVisitedDistrict(_ownerKey: string): string | null {
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
     if (!raw) return null;

@@ -55,3 +55,26 @@ create index if not exists shared_plans_created_at_idx
 
 -- Add partner_votes column to shared_plans if not exists
 alter table public.shared_plans add column if not exists partner_votes jsonb;
+
+-- RLS for shared_plans: allow anonymous read (plans are public by ID), block direct write
+alter table public.shared_plans enable row level security;
+
+create policy "allow_anon_read_shared_plans" on public.shared_plans
+  for select
+  to anon
+  using (true);
+
+create policy "deny_anon_write_shared_plans" on public.shared_plans
+  as restrictive
+  to anon
+  using (false)
+  with check (false);
+
+-- Cleanup function: delete expired api_cache rows
+create or replace function public.cleanup_expired_cache()
+returns void
+language sql
+security definer
+as $$
+  delete from public.api_cache where expires_at < now();
+$$;

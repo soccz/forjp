@@ -10,7 +10,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function DateRecapCard({ planLabel, district, venueNames, totalMinutes, onSave, onClose }: Props) {
+export function DateRecapCard({ planLabel: _planLabel, district, venueNames, totalMinutes, onSave, onClose }: Props) {
   const [rating, setRating] = useState(0);
   const [memoryText, setMemoryText] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);

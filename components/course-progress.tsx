@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlannerStep } from "@/lib/types";
 import { useHaptic } from "@/lib/use-haptic";
 import { DateRecapCard } from "@/components/date-recap-card";
@@ -42,7 +42,14 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, tota
   const [justCheckedIn, setJustCheckedIn] = useState<string | null>(null);
   const [showRecap, setShowRecap] = useState(false);
   const haptic = useHaptic();
+  const checkinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const done = progress.currentStepIndex >= steps.length;
+
+  useEffect(() => {
+    return () => {
+      if (checkinTimerRef.current !== null) clearTimeout(checkinTimerRef.current);
+    };
+  }, []);
 
   return (
     <div className="course-progress">
@@ -108,7 +115,8 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, tota
                         haptic(50);
                         onCheckIn(step.id);
                         setJustCheckedIn(step.id);
-                        setTimeout(() => setJustCheckedIn(null), 700);
+                        if (checkinTimerRef.current !== null) clearTimeout(checkinTimerRef.current);
+                        checkinTimerRef.current = setTimeout(() => setJustCheckedIn(null), 700);
                       }}
                     >
                       지금 여기예요

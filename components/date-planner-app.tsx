@@ -23,7 +23,7 @@ import { ChatPlanner } from "@/components/chat-planner";
 import { optimizeRoute, type RouteOptimizationResult } from "@/lib/route-optimizer";
 import { buildPlanVariants } from "@/lib/plan-variants";
 import { computeValueDensity, getValueTier, variantValueScore } from "@/lib/value-score";
-import { getRecentlyVisitedVenueIds, getMostVisitedDistrict } from "@/lib/saved-plan-store";
+import { getMostVisitedDistrict } from "@/lib/saved-plan-store";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { TimePicker } from "@/components/time-picker";
 import { CourseProgress, type CourseProgressState } from "@/components/course-progress";
@@ -32,6 +32,7 @@ import { VenueInputForm, type CustomVenueInput } from "@/components/venue-input-
 import type { VenueCandidate } from "@/lib/types";
 import { RecommendationSkeleton } from "@/components/skeleton-loader";
 import { PlanTimeline, buildTimelineStops } from "@/components/plan-timeline";
+import { DISTRICT_CENTERS } from "@/lib/district-centers";
 
 type DatePlannerAppProps = {
   initialPlanner: PlannerResult;
@@ -373,7 +374,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   }, []);
 
   useEffect(() => {
-    getSeoulWeather().then((w) => {
+    void getSeoulWeather().then((w) => {
       setWeather(w);
       if (w?.isRainy) setRainMode(true);
     });
@@ -694,17 +695,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       setRecommendationError(null);
 
       // Compute route optimization from loaded candidates
-      const districtCenters: Record<string, { latitude: number; longitude: number }> = {
-        성수: { latitude: 37.5446, longitude: 127.0557 },
-        홍대: { latitude: 37.5563, longitude: 126.9236 },
-        강남: { latitude: 37.4979, longitude: 127.0276 },
-        을지로: { latitude: 37.5663, longitude: 126.9911 },
-        이태원: { latitude: 37.5340, longitude: 126.9947 },
-        합정: { latitude: 37.5497, longitude: 126.9142 },
-        건대: { latitude: 37.5403, longitude: 127.0699 },
-        잠실: { latitude: 37.5133, longitude: 127.1001 },
-      };
-      const origin = districtCenters[nextDistrict] ?? districtCenters["성수"];
+      const origin = DISTRICT_CENTERS[nextDistrict] ?? DISTRICT_CENTERS["성수"];
       const perCategory = nextCategories
         .map((cat) => nextRecommendation.candidates.find((c) => c.category === cat))
         .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined);
@@ -840,17 +831,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   }
 
   function handleAddCustomVenue(input: CustomVenueInput) {
-    const districtCentersLocal: Record<string, { latitude: number; longitude: number }> = {
-      성수: { latitude: 37.5446, longitude: 127.0557 },
-      홍대: { latitude: 37.5563, longitude: 126.9236 },
-      강남: { latitude: 37.4979, longitude: 127.0276 },
-      을지로: { latitude: 37.5663, longitude: 126.9911 },
-      이태원: { latitude: 37.5340, longitude: 126.9947 },
-      합정: { latitude: 37.5497, longitude: 126.9142 },
-      건대: { latitude: 37.5403, longitude: 127.0699 },
-      잠실: { latitude: 37.5133, longitude: 127.1001 },
-    };
-    const center = districtCentersLocal[district] ?? districtCentersLocal["성수"];
+    const center = DISTRICT_CENTERS[district] ?? DISTRICT_CENTERS["성수"];
 
     const newVenue: VenueCandidate = {
       id: `custom-${Date.now()}-${customVenues.length}`,
@@ -884,16 +865,6 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   }
 
   async function fetchQuickRecommend(quickCollected: ChatCollected) {
-    const districtCenters: Record<string, { latitude: number; longitude: number }> = {
-      성수: { latitude: 37.5446, longitude: 127.0557 },
-      홍대: { latitude: 37.5563, longitude: 126.9236 },
-      강남: { latitude: 37.4979, longitude: 127.0276 },
-      을지로: { latitude: 37.5663, longitude: 126.9911 },
-      이태원: { latitude: 37.5340, longitude: 126.9947 },
-      합정: { latitude: 37.5497, longitude: 126.9142 },
-      건대: { latitude: 37.5403, longitude: 127.0699 },
-      잠실: { latitude: 37.5133, longitude: 127.1001 },
-    };
     setIsRecommendationLoading(true);
     try {
       const res = await fetch("/api/recommendations", {
@@ -914,7 +885,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       if (!res.ok) throw new Error("quick_recommend_failed");
       const data = (await res.json()) as { candidates?: import("@/lib/types").VenueCandidate[] };
       const candidates = data.candidates ?? [];
-      const origin = districtCenters[quickCollected.district] ?? districtCenters["성수"];
+      const origin = DISTRICT_CENTERS[quickCollected.district] ?? DISTRICT_CENTERS["성수"];
       const variants = buildPlanVariants(candidates, quickCollected.categories, origin);
       setChatCompleted(true);
       setPlanVariants(variants);
@@ -1479,7 +1450,6 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     title={`${planner.label} 코스`}
                     description={planner.steps.map((s) => s.title).join(" → ")}
                     url={shareUrl}
-                    surpriseMode={surpriseMode}
                   />
                 ) : null}
                 <label className="surprise-toggle">
@@ -1839,6 +1809,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     );
                   }}
                   onEnd={() => setCourseProgress(null)}
+                  totalMinutes={planner.steps.reduce((sum, s) => sum + s.stayMinutes + s.transferMinutes, 0)}
+                  venueNames={planner.steps.map((s) => s.title)}
+                  district={district}
                 />
               ) : (
                 <button
