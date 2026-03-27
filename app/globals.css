@@ -3415,3 +3415,67 @@ body {
 .onboarding-sample__stop { font-size: 0.8rem; font-weight: 600; }
 .onboarding-sample__arrow { font-size: 0.75rem; color: var(--fg-muted, #aaa); }
 .onboarding-sample__meta { font-size: 0.75rem; color: var(--fg-muted, #888); }
+
+/* ── Value density (가성비) ── */
+.plan-variant-card__value {
+  font-size: 0.72rem;
+  color: var(--fg-muted, #888);
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.value-tier {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.value-tier--최고 { background: #e8f5e9; color: #2e7d32; }
+.value-tier--보통 { background: #fff8e1; color: #f57f17; }
+.value-tier--고가 { background: #fce4ec; color: #c62828; }
+.value-badge {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  margin-left: 0.35rem;
+}
+
+/* ── Visit nudge ── */
+.visit-nudge {
+  font-size: 0.75rem;
+  color: var(--accent, #ea6d4c);
+  margin: 0.15rem 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.first-date-tips-toggle {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  border: 1px solid var(--line, #e8e0d6);
+  background: transparent;
+  cursor: pointer;
+  color: var(--fg-muted, #888);
+  transition: all 0.15s;
+  margin-bottom: 0.5rem;
+}
+.first-date-tips-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.first-date-tips {
+  list-style: none;
+  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0 0;
+  background: #fffbf5;
+  border-radius: 8px;
+  border-left: 3px solid var(--accent, #ea6d4c);
+}
+.first-date-tip {
+  font-size: 0.78rem;
+  color: var(--fg, #3a2e26);
+  padding: 0.15rem 0;
+  line-height: 1.4;
+}

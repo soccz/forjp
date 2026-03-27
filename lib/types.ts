@@ -125,10 +125,12 @@ export type VenueCandidate = {
   longitude: number;
   source: "mock" | "kakao";
   tags: string[];
+  valueDensity?: number; // stayMinutes / (estimatedCost / 1000) — higher = better value
   reviewSummary?: ReviewSummary;
   fitBadges?: RecommendationFitBadge[];
   timing?: RecommendationTiming;
   alternativeSuggestion?: RecommendationAlternative;
+  firstDateTips?: string[];
 };
 
 export type RecommendationRequest = {
@@ -137,6 +139,7 @@ export type RecommendationRequest = {
   categories: ActivityCategory[];
   preferences: UserPreferences;
   selectedCandidateIds?: string[];
+  recentlyVisitedIds?: string[];
 };
 
 export type RecommendationResponse = {

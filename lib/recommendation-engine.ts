@@ -65,10 +65,16 @@ function getBudgetPenalty(candidate: VenueCandidate, preferences: UserPreference
   return candidate.estimatedCost > idealPerStop ? Math.floor((candidate.estimatedCost - idealPerStop) / 1500) : 0;
 }
 
+function getNoveltyBonus(candidate: VenueCandidate, recentlyVisitedIds: string[]) {
+  if (!recentlyVisitedIds.length) return 0;
+  return recentlyVisitedIds.includes(candidate.id) ? -15 : 5;
+}
+
 function scoreCandidate(
   candidate: VenueCandidate,
   preferences: UserPreferences,
-  categoryCount: number
+  categoryCount: number,
+  recentlyVisitedIds: string[] = []
 ) {
   return (
     100 +
@@ -76,7 +82,8 @@ function scoreCandidate(
     getVisualBonus(candidate, preferences) +
     getIndoorBonus(candidate, preferences) -
     getWalkPenalty(candidate, preferences) -
-    getBudgetPenalty(candidate, preferences, categoryCount)
+    getBudgetPenalty(candidate, preferences, categoryCount) +
+    getNoveltyBonus(candidate, recentlyVisitedIds)
   );
 }
 
@@ -187,6 +194,19 @@ function attachTimingContext(candidates: VenueCandidate[]) {
   };
 
   return { enrichedCandidates, timeSummary };
+}
+
+function buildFirstDateTips(candidate: VenueCandidate): string[] {
+  const tips: string[] = [];
+  if (candidate.quietScore >= 4) tips.push("조용해서 대화에 집중하기 좋아요");
+  if (candidate.indoor) tips.push("날씨 걱정 없이 편안하게");
+  if (candidate.stayMinutes >= 90) tips.push("충분한 시간 여유로 자연스러운 대화");
+  if (candidate.stayMinutes <= 60) tips.push("부담 없는 짧은 체류로 어색함 최소화");
+  if (candidate.estimatedCost <= 15000) tips.push("부담 없는 가격대");
+  if (candidate.visualScore >= 4) tips.push("사진 포인트로 어색한 순간을 자연스럽게");
+  if (candidate.tags?.includes("소개팅")) tips.push("소개팅 장소로 검증됨");
+  if (candidate.tags?.includes("넓은 좌석")) tips.push("옆 테이블과 거리감 있어 대화에 집중");
+  return tips.slice(0, 3);
 }
 
 function buildFitBadges(
@@ -487,8 +507,8 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
         .filter((candidate) => candidate.category === category)
         .sort(
           (left, right) =>
-            scoreCandidate(right, input.preferences, categoryCount) -
-            scoreCandidate(left, input.preferences, categoryCount)
+            scoreCandidate(right, input.preferences, categoryCount, input.recentlyVisitedIds) -
+            scoreCandidate(left, input.preferences, categoryCount, input.recentlyVisitedIds)
         )[0];
     })
     .filter((candidate): candidate is VenueCandidate => Boolean(candidate));
@@ -525,6 +545,7 @@ export async function getRecommendation(input: RecommendationRequest): Promise<R
       input.preferences,
       categoryCount
     ),
+    firstDateTips: buildFirstDateTips(candidate),
   }));
   const reviewStatus = reviewResults[0]?.status;
   if (reviewStatus) {

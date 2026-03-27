@@ -22,6 +22,8 @@ import { AuthButton } from "@/components/auth-button";
 import { ChatPlanner } from "@/components/chat-planner";
 import { optimizeRoute, type RouteOptimizationResult } from "@/lib/route-optimizer";
 import { buildPlanVariants } from "@/lib/plan-variants";
+import { computeValueDensity, getValueTier, variantValueScore } from "@/lib/value-score";
+import { getRecentlyVisitedVenueIds, getMostVisitedDistrict } from "@/lib/saved-plan-store";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { TimePicker } from "@/components/time-picker";
 import { CourseProgress, type CourseProgressState } from "@/components/course-progress";
@@ -297,6 +299,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   const hasAutoLoaded = useRef(false);
   const busy = isLoading || isPending;
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [visitNudge, setVisitNudge] = useState<string | null>(null);
 
   // Weather
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
@@ -320,6 +323,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
   // Timeline view toggle
   const [showTimeline, setShowTimeline] = useState(false);
+
+  // First date tips toggle
+  const [showFirstDateTips, setShowFirstDateTips] = useState(false);
 
   // Course progress
   const [courseProgress, setCourseProgress] = useState<CourseProgressState | null>(null);
@@ -371,6 +377,11 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       setWeather(w);
       if (w?.isRainy) setRainMode(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const topDistrict = getMostVisitedDistrict("local");
+    if (topDistrict) setVisitNudge(topDistrict);
   }, []);
 
   useEffect(() => {
@@ -1389,6 +1400,11 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   {district && DISTRICT_HINTS[district] && (
                     <p className="district-hint">{DISTRICT_HINTS[district]}</p>
                   )}
+                  {visitNudge && district === visitNudge && (
+                    <p className="visit-nudge">
+                      최근 {visitNudge}를 자주 가셨어요 — 이번엔 다른 지역도 어때요?
+                    </p>
+                  )}
                 </div>
 
                 <div className="control-group">
@@ -1505,6 +1521,12 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     onClick={() => setRainMode(r => !r)}
                   >
                     {rainMode ? '☔ 우천 모드 ON' : '☔ 우천 모드'}
+                  </button>
+                  <button
+                    className="first-date-tips-toggle"
+                    onClick={() => setShowFirstDateTips(t => !t)}
+                  >
+                    💡 첫 데이트 팁 {showFirstDateTips ? "숨기기" : "보기"}
                   </button>
                   <div className="recommendation-summary">
                     <div>
@@ -1644,6 +1666,13 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                             ))}
                           </div>
                         ) : null}
+                        {showFirstDateTips && candidate.firstDateTips && candidate.firstDateTips.length > 0 && (
+                          <ul className="first-date-tips">
+                            {candidate.firstDateTips.map((tip, i) => (
+                              <li key={i} className="first-date-tip">✓ {tip}</li>
+                            ))}
+                          </ul>
+                        )}
                         <div className="token-row token-row--dense">
                           {candidate.tags.map((tag) => (
                             <span key={tag} className="token">
@@ -1662,6 +1691,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                           </span>
                           <span>
                             {candidate.estimatedCost.toLocaleString("ko-KR")}원 · {candidate.source}
+                            {computeValueDensity(candidate) >= 3 && (
+                              <span className="value-badge">가성비 ✓</span>
+                            )}
                           </span>
                         </div>
                       </article>
@@ -1981,6 +2013,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                         </div>
                         <div className="plan-variant-card__stats">
                           {Math.round(variant.totalMinutes / 60)}시간 · {variant.totalCost.toLocaleString("ko-KR")}원
+                        </div>
+                        <div className="plan-variant-card__value">
+                          가성비 {variantValueScore(variant).toFixed(1)} <span className={`value-tier value-tier--${getValueTier(variantValueScore(variant))}`}>{getValueTier(variantValueScore(variant))}</span>
                         </div>
                       </button>
                     ))}

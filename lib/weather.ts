@@ -10,6 +10,18 @@ export type WeatherInfo = {
 const SEOUL_LAT = 37.5665;
 const SEOUL_LON = 126.9780;
 
+/** Client-side: fetch via our cached API route */
+export async function getSeoulWeatherCached(): Promise<WeatherInfo | null> {
+  try {
+    const res = await fetch("/api/weather");
+    if (!res.ok) return null;
+    const data = await res.json() as WeatherInfo & { cached?: boolean };
+    return { condition: data.condition, temperatureCelsius: data.temperatureCelsius, isRainy: data.isRainy };
+  } catch {
+    return null;
+  }
+}
+
 export async function getSeoulWeather(): Promise<WeatherInfo | null> {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${SEOUL_LAT}&longitude=${SEOUL_LON}&current=temperature_2m,weather_code&timezone=Asia%2FSeoul`;

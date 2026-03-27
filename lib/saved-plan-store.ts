@@ -1,6 +1,8 @@
 import { getSupabaseAdminClient, hasSupabaseServerConfig } from "@/lib/supabase";
 import type { SavedPlan } from "@/lib/types";
 
+const LOCAL_KEY = "couple_saved_plans";
+
 type SavedPlanRow = {
   id: string;
   owner_key: string;
@@ -104,4 +106,37 @@ export async function createSavedPlan(ownerKey: string, plan: SavedPlan) {
   }
 
   return { plan, source: "supabase" as const };
+}
+
+export function getRecentlyVisitedVenueIds(ownerKey: string, limit = 3): string[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (!raw) return [];
+    const plans: SavedPlan[] = JSON.parse(raw);
+    // Get venue IDs from most recent N plans
+    return plans
+      .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
+      .slice(0, limit)
+      .flatMap(p => p.stepIds ?? []);
+  } catch {
+    return [];
+  }
+}
+
+export function getMostVisitedDistrict(ownerKey: string): string | null {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (!raw) return null;
+    const plans: SavedPlan[] = JSON.parse(raw);
+    const districtCounts: Record<string, number> = {};
+    for (const p of plans) {
+      const d = p.customConfig?.district;
+      if (d) districtCounts[d] = (districtCounts[d] ?? 0) + 1;
+    }
+    const entries = Object.entries(districtCounts);
+    if (!entries.length) return null;
+    return entries.sort((a, b) => b[1] - a[1])[0][0];
+  } catch {
+    return null;
+  }
 }
