@@ -1,120 +1,95 @@
 # COUPLE
 
-한국형 대중교통 기반 데이트 플래너 웹앱입니다.  
-`P mode / J mode`, 커스텀 코스 생성, 저장/공유, 추천 캐시, provider 진단까지 포함한 Next.js 앱입니다.
+서울 기반 데이트 플래너 웹앱입니다.
 
-## Run
+AI 채팅으로 코스를 설계하는 **P mode**와 직접 장소를 고르는 **J mode**, 5가지 테마 플랜 변형, 동선 최적화, 코스 공유, 파트너 투표, 날씨 감지, 카카오 로그인까지 포함한 Next.js 앱입니다.
+
+## 시작
 
 ```bash
 npm install
 npm run dev
 ```
 
-프로덕션 검증:
+빌드 검증:
 
 ```bash
 npm run build
-npm run start
 ```
 
-## Environment
+## 환경 변수
 
-`.env.example` 기준으로 환경 변수를 채웁니다.
+`.env.local` 파일을 만들어 아래 변수를 채웁니다. 없으면 앱은 mock provider와 로컬 저장으로 자동 fallback합니다.
 
-- `KAKAO_REST_API_KEY`
-  - 장소 검색 실데이터 provider
-- `ODSAY_API_KEY`
-  - 대중교통 시간 계산 실데이터 provider
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-  - 저장/캐시 계층
+```bash
+# 장소 검색 실데이터 (없으면 mock)
+KAKAO_REST_API_KEY=
 
-환경 변수가 없으면 앱은 자동으로 목업 provider와 로컬 저장으로 fallback 합니다.
+# 대중교통 경로 실데이터 (없으면 mock)
+ODSAY_API_KEY=
 
-## Live Switch Checklist
+# 저장/공유/캐시 계층 (없으면 로컬 전용)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 
-API 키만 넣으면 바로 live provider 경로를 탈 수 있도록 구조는 이미 분리되어 있습니다.
+# NextAuth 필수 (세션 암호화 키)
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=https://your-domain.com
 
-1. `.env.local` 작성
-2. `supabase/schema.sql` 적용
-3. `npm run build`
-4. `GET /api/health`
-5. `GET /api/diagnostics`
-6. `POST /api/recommendations`
+# 카카오 소셜 로그인 (선택)
+KAKAO_CLIENT_ID=
+KAKAO_CLIENT_SECRET=
+NEXT_PUBLIC_KAKAO_AUTH_ENABLED=false
+NEXT_PUBLIC_KAKAO_JS_KEY=
+```
 
-추천 API에서 아래 항목이 보이면 1차 전환이 정상입니다.
+`NEXTAUTH_SECRET`은 아래 명령으로 생성합니다:
 
-- `providerLabel`에 `Kakao Local` 또는 `ODsay transit` 포함
-- `provider`가 `live`, `hybrid`, `mock` 중 하나로 내려옴
-- `providers[].mode`가 `live`
-- `candidates[].source`가 `kakao`
-- 같은 카테고리 안에 여러 후보가 내려와 `alternativeSuggestion`이 붙을 수 있음
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
-해석 기준:
+## Supabase 설정
 
-- `live`: 현재 후보가 전부 실데이터
-- `hybrid`: 일부는 실데이터, 일부는 fallback
-- `mock`: 전부 목업 fallback
+저장/공유/캐시가 필요하면 [`supabase/schema.sql`](supabase/schema.sql)을 Supabase SQL 에디터에서 실행합니다.
 
-실데이터 장소 후보에는 기본 품질 필터가 적용됩니다.
+생성되는 테이블:
 
-- 카테고리 불일치 후보 제외
-- 너무 먼 후보 제외
-- 중복 상호명 제거
-- 일부 과도하게 일반적인 체인/장소 타입은 감점 또는 제외
-- 필터 후 후보가 비면 같은 카테고리의 mock fallback 사용
+- `saved_plans` — 코스 저장
+- `api_cache` — 추천/날씨 캐시
+- `place_review_summaries` — 장소 리뷰 요약
+- `shared_plans` — 코스 공유 및 파트너 투표
 
-주의:
+## API
 
-- 리뷰는 아직 외부 플랫폼 실시간 수집이 아니라 `mock` 또는 `Supabase review summaries` 기반입니다.
-- 혼잡도/웨이팅은 현재 규칙 기반 시뮬레이션입니다.
-- 즉, Kakao/ODsay 키를 넣으면 장소/이동은 실데이터화되지만 리뷰와 혼잡도는 별도 고도화 단계가 남아 있습니다.
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `GET /api/health` | 환경 구성 상태 확인 |
+| `GET /api/diagnostics` | provider 상태 상세 확인 |
+| `POST /api/chat` | AI 채팅 (P mode 코스 설계) |
+| `POST /api/recommendations` | 장소 추천 후보 반환 |
+| `POST /api/custom-plan` | 커스텀 추천 → 플래너 구조 변환 |
+| `POST /api/planner` | 고정 시나리오 기반 플래너 |
+| `GET/POST /api/saved-plans` | 코스 저장/조회 |
+| `GET/POST/PATCH /api/shared-plans` | 코스 공유 및 파트너 투표 |
+| `GET /api/weather` | 서울 현재 날씨 (30분 캐시) |
 
-## Supabase
+## 현재 상태
 
-다음 SQL을 적용해야 저장/캐시 계층이 완전하게 동작합니다.
+| 기능 | 상태 |
+|------|------|
+| 장소 검색 | `KAKAO_REST_API_KEY` 있으면 실데이터, 없으면 mock |
+| 대중교통 | `ODSAY_API_KEY` 있으면 실데이터, 없으면 mock |
+| 날씨 감지 | Open-Meteo 무료 API (항상 활성) |
+| 코스 저장/공유 | Supabase 설정 시 활성, 없으면 로컬 저장 |
+| 리뷰 요약 | Supabase `place_review_summaries` 또는 mock |
+| 카카오 로그인 | `NEXT_PUBLIC_KAKAO_AUTH_ENABLED=true` + 키 설정 시 활성 |
+| AI 채팅 (P mode) | `ANTHROPIC_API_KEY` 있으면 Claude, 없으면 mock 응답 |
 
-- [schema.sql](/Users/hong/main/test/couple/supabase/schema.sql)
+## Live 전환 체크리스트
 
-적용 대상:
-
-- `saved_plans`
-- `api_cache`
-- `place_review_summaries`
-
-## APIs
-
-- `GET /api/health`
-  - 현재 환경이 실서비스 전환 가능한지와 누락 설정 확인
-- `GET /api/diagnostics`
-  - provider 상태와 setup 이슈 확인
-- `POST /api/recommendations`
-  - 추천 후보, 캐시 상태, provider 상태, 시간대 진단, 대체 후보 반환
-- `POST /api/custom-plan`
-  - 커스텀 추천 결과를 실제 플래너 구조로 변환
-- `POST /api/planner`
-  - 고정 시나리오 기반 플래너 재계산
-- `GET/POST /api/saved-plans`
-  - 저장 코스 조회/생성
-
-## Current Status
-
-현재 기본 상태:
-
-- 장소 검색: mock 또는 Kakao Local
-- live 장소 검색에는 품질 필터 포함
-- 대중교통: mock 또는 ODsay
-- 리뷰 요약: mock 또는 Supabase review summaries
-- 저장: local 또는 Supabase
-- 추천 캐시: memory 또는 Supabase
-- 대체 추천: mock/live 장소 후보 안에서 동일 카테고리 대안 계산
-- 시간대 진단: 규칙 기반 혼잡/예상 대기 시뮬레이션
-
-## Next
-
-실제 서비스로 올리려면 우선순위는 이렇습니다.
-
-1. Kakao/ODsay 키 연결 후 live provider 응답 shape 검증
-2. `place_review_summaries`에 리뷰 요약 적재 후 review provider live 검증
-3. Supabase Auth 연동으로 익명 owner key 대신 계정 기반 저장 전환
+1. 환경 변수 설정 후 `npm run build`
+2. `GET /api/health` — `readyForLive: true` 확인
+3. `GET /api/diagnostics` — provider 상태 확인
+4. `POST /api/recommendations` — `candidates[].source`가 `kakao`인지 확인
