@@ -1,6 +1,27 @@
 import { getSupabaseAdminClient, hasSupabaseServerConfig } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
+export async function PATCH(req: Request) {
+  const { id, stepVotes, overallApproval } = await req.json() as {
+    id: string;
+    stepVotes: Record<string, "love" | "okay" | "skip">;
+    overallApproval: boolean;
+  };
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+
+  // Try Supabase first
+  const supabase = getSupabaseAdminClient();
+  if (supabase) {
+    const partnerVotes = { voted_at: new Date().toISOString(), step_votes: stepVotes, overall_approval: overallApproval };
+    const { error } = await supabase
+      .from("shared_plans")
+      .update({ partner_votes: partnerVotes })
+      .eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json() as Record<string, unknown>;

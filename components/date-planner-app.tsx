@@ -27,6 +27,7 @@ import { CourseProgress, type CourseProgressState } from "@/components/course-pr
 import { KakaoShareButton } from "@/components/kakao-share-button";
 import { VenueInputForm, type CustomVenueInput } from "@/components/venue-input-form";
 import type { VenueCandidate } from "@/lib/types";
+import { RecommendationSkeleton } from "@/components/skeleton-loader";
 
 type DatePlannerAppProps = {
   initialPlanner: PlannerResult;
@@ -1354,6 +1355,10 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
               {shareMessage ? <p className="subtle-text">{shareMessage}</p> : null}
 
               {recommendationError ? <p className="error-text">{recommendationError}</p> : null}
+
+              {isRecommendationLoading && !recommendation ? (
+                <RecommendationSkeleton />
+              ) : null}
 
               {recommendation ? (
                 <div className="recommendation-panel">

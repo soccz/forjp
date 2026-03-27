@@ -52,3 +52,6 @@ create table if not exists public.shared_plans (
 
 create index if not exists shared_plans_created_at_idx
   on public.shared_plans (created_at desc);
+
+-- Add partner_votes column to shared_plans if not exists
+alter table public.shared_plans add column if not exists partner_votes jsonb;

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { PlannerStep } from "@/lib/types";
+import { useHaptic } from "@/lib/use-haptic";
+import { DateRecapCard } from "@/components/date-recap-card";
 
 export type CourseProgressState = {
   active: boolean;
@@ -17,6 +19,8 @@ type Props = {
   onEnd: () => void;
   totalMinutes?: number;
   startTime?: string;
+  venueNames?: string[];
+  district?: string;
 };
 
 function formatElapsed(isoStart: string): string {
@@ -34,8 +38,10 @@ function formatRemaining(totalMinutes: number, startTime?: string): string {
   return `${Math.floor(remaining / 60)}시간 ${remaining % 60}분 남았어요`;
 }
 
-export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, totalMinutes, startTime }: Props) {
+export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, totalMinutes, startTime, venueNames, district }: Props) {
   const [justCheckedIn, setJustCheckedIn] = useState<string | null>(null);
+  const [showRecap, setShowRecap] = useState(false);
+  const haptic = useHaptic();
   const done = progress.currentStepIndex >= steps.length;
 
   return (
@@ -99,6 +105,7 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, tota
                       type="button"
                       className="button button--soft"
                       onClick={() => {
+                        haptic(50);
                         onCheckIn(step.id);
                         setJustCheckedIn(step.id);
                         setTimeout(() => setJustCheckedIn(null), 700);
@@ -111,9 +118,13 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, tota
                     <button
                       type="button"
                       className="button button--primary"
-                      onClick={onNext}
+                      onClick={() => {
+                        const isLast = index === steps.length - 1;
+                        onNext();
+                        if (isLast) setShowRecap(true);
+                      }}
                     >
-                      다음 장소로 →
+                      {index === steps.length - 1 ? "코스 완료 →" : "다음 장소로 →"}
                     </button>
                   )}
                 </div>
@@ -126,6 +137,17 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, tota
       <button type="button" className="button button--ghost course-progress__end" onClick={onEnd}>
         진행 종료
       </button>
+
+      {showRecap && (
+        <DateRecapCard
+          planLabel=""
+          district={district ?? ""}
+          venueNames={venueNames ?? steps.map(s => s.title)}
+          totalMinutes={totalMinutes ?? 0}
+          onSave={() => { setShowRecap(false); onEnd(); }}
+          onClose={() => { setShowRecap(false); onEnd(); }}
+        />
+      )}
     </div>
   );
 }

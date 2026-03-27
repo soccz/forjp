@@ -3251,3 +3251,64 @@ body {
 .budget-status__split {
   font-weight: 600;
 }
+
+/* Date recap card */
+.recap-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 0 0 env(safe-area-inset-bottom, 0);
+}
+.recap-card {
+  background: var(--bg, #f5efe8);
+  border-radius: 20px 20px 0 0;
+  padding: 1.5rem 1.25rem 2rem;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.recap-card__header { text-align: center; margin-bottom: 1.5rem; }
+.recap-card__emoji { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.recap-card__title { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.25rem; }
+.recap-card__summary { font-size: 0.85rem; color: var(--fg-muted, #888); margin: 0; }
+.recap-card__section { margin-bottom: 1.25rem; }
+.recap-card__label { font-size: 0.8rem; font-weight: 600; color: var(--fg-muted, #888); margin: 0 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.recap-stars { display: flex; gap: 0.5rem; }
+.recap-star { font-size: 1.8rem; background: none; border: none; cursor: pointer; color: var(--line, #ddd); transition: color 0.15s; }
+.recap-star--on { color: #f5a623; }
+.recap-venues { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.recap-venue-tag { padding: 0.35rem 0.75rem; border-radius: 20px; border: 1.5px solid var(--line, #ddd); background: transparent; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
+.recap-venue-tag--on { background: var(--accent, #ea6d4c); border-color: var(--accent, #ea6d4c); color: white; }
+.recap-memo { width: 100%; border: 1.5px solid var(--line, #ddd); border-radius: 10px; padding: 0.6rem 0.75rem; font-size: 0.85rem; background: transparent; resize: none; font-family: inherit; color: inherit; }
+.recap-card__actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+
+/* Skeleton loaders */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--line, #e8e0d6) 0%,
+    rgba(255, 251, 246, 0.6) 50%,
+    var(--line, #e8e0d6) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton--title { height: 22px; width: 55%; margin-bottom: 12px; }
+.skeleton--text { height: 14px; width: 100%; margin-bottom: 8px; }
+.skeleton--text-short { width: 70%; }
+.skeleton--venue-card { height: 110px; margin-bottom: 10px; border-radius: 12px; }
+.skeleton--bubble { height: 40px; width: 65%; margin-bottom: 10px; border-radius: 18px; }
+.skeleton--variant-card { height: 90px; margin-bottom: 10px; border-radius: 12px; }
+.recommendation-skeleton,
+.chat-message-skeleton,
+.plan-variant-skeleton { padding: 0.5rem 0; }
