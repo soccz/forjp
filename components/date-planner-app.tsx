@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { getSeoulWeather, type WeatherInfo } from "@/lib/weather";
 import type {
   ActivityCategory,
   ChatCollected,
@@ -28,6 +29,7 @@ import { KakaoShareButton } from "@/components/kakao-share-button";
 import { VenueInputForm, type CustomVenueInput } from "@/components/venue-input-form";
 import type { VenueCandidate } from "@/lib/types";
 import { RecommendationSkeleton } from "@/components/skeleton-loader";
+import { PlanTimeline, buildTimelineStops } from "@/components/plan-timeline";
 
 type DatePlannerAppProps = {
   initialPlanner: PlannerResult;
@@ -49,6 +51,16 @@ const vibeChoices: { value: VibePreference; label: string }[] = [
   { value: "playful", label: "가벼운 템포" },
 ];
 const districtChoices = ["성수", "홍대", "강남", "을지로", "이태원", "합정", "건대", "잠실"];
+const DISTRICT_HINTS: Record<string, string> = {
+  성수: "2호선 성수역 · 힙한 카페거리",
+  홍대: "2호선 홍대입구역 · 젊고 활기찬",
+  강남: "2·9호선 강남역 · 세련되고 다양",
+  을지로: "2호선 을지로3가역 · 빈티지 감성",
+  이태원: "6호선 이태원역 · 이국적 분위기",
+  합정: "2·6호선 합정역 · 아늑하고 감성적",
+  건대: "2·7호선 건대입구역 · 활발한 상권",
+  잠실: "2·8호선 잠실역 · 넓고 쾌적",
+};
 const categoryChoices: { value: ActivityCategory; label: string }[] = [
   { value: "movie", label: "영화" },
   { value: "cafe", label: "카페" },
@@ -286,6 +298,12 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   const busy = isLoading || isPending;
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Weather
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+
+  // Surprise mode
+  const [surpriseMode, setSurpriseMode] = useState(false);
+
   // P mode chat & plan variants
   const [chatCompleted, setChatCompleted] = useState(false);
   const [planVariants, setPlanVariants] = useState<PlanVariant[]>([]);
@@ -299,6 +317,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
   // Start time
   const [startTime, setStartTime] = useState("19:00");
+
+  // Timeline view toggle
+  const [showTimeline, setShowTimeline] = useState(false);
 
   // Course progress
   const [courseProgress, setCourseProgress] = useState<CourseProgressState | null>(null);
@@ -343,6 +364,13 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
     } catch {
       window.localStorage.removeItem(SAVED_PLANS_KEY);
     }
+  }, []);
+
+  useEffect(() => {
+    getSeoulWeather().then((w) => {
+      setWeather(w);
+      if (w?.isRainy) setRainMode(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -776,7 +804,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       const res = await fetch("/api/shared-plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
+        body: JSON.stringify({ plan: params, surpriseMode }),
       });
       if (res.ok) {
         const data = (await res.json()) as { url: string };
@@ -842,6 +870,68 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
     if (!selectedCategories.includes(input.category)) {
       setSelectedCategories([...selectedCategories, input.category]);
     }
+  }
+
+  async function fetchQuickRecommend(quickCollected: ChatCollected) {
+    const districtCenters: Record<string, { latitude: number; longitude: number }> = {
+      성수: { latitude: 37.5446, longitude: 127.0557 },
+      홍대: { latitude: 37.5563, longitude: 126.9236 },
+      강남: { latitude: 37.4979, longitude: 127.0276 },
+      을지로: { latitude: 37.5663, longitude: 126.9911 },
+      이태원: { latitude: 37.5340, longitude: 126.9947 },
+      합정: { latitude: 37.5497, longitude: 126.9142 },
+      건대: { latitude: 37.5403, longitude: 127.0699 },
+      잠실: { latitude: 37.5133, longitude: 127.1001 },
+    };
+    setIsRecommendationLoading(true);
+    try {
+      const res = await fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          district: quickCollected.district,
+          originLabel: quickCollected.district,
+          categories: quickCollected.categories,
+          preferences: {
+            budgetCap: quickCollected.budgetCap,
+            walkPreference: "balanced",
+            vibePreference: quickCollected.vibe,
+            indoorPriority: false,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error("quick_recommend_failed");
+      const data = (await res.json()) as { candidates?: import("@/lib/types").VenueCandidate[] };
+      const candidates = data.candidates ?? [];
+      const origin = districtCenters[quickCollected.district] ?? districtCenters["성수"];
+      const variants = buildPlanVariants(candidates, quickCollected.categories, origin);
+      setChatCompleted(true);
+      setPlanVariants(variants);
+      setDistrict(quickCollected.district);
+      setSelectedCategories(quickCollected.categories);
+      setPreferences({
+        ...preferences,
+        budgetCap: quickCollected.budgetCap,
+        vibePreference: quickCollected.vibe,
+      });
+      setActiveWorkspacePanel("plan");
+    } catch {
+      setRecommendationError("빠른 추천을 불러오지 못했습니다.");
+    } finally {
+      setIsRecommendationLoading(false);
+    }
+  }
+
+  function handleQuickStart() {
+    const hour = new Date().getHours();
+    const quickCollected: ChatCollected = {
+      district: "성수",
+      startTime: `${hour.toString().padStart(2, "0")}:00`,
+      vibe: hour >= 20 ? "cinematic" : hour >= 17 ? "quiet" : "playful",
+      budgetCap: 60000,
+      categories: ["cafe", "dinner", "movie"],
+    };
+    void fetchQuickRecommend(quickCollected);
   }
 
   function applyCandidateAlternative(currentCandidateId: string, nextCandidateId: string) {
@@ -1032,6 +1122,11 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
       {activePanel === "planner" ? (
       <section id="workspace" className="workspace">
         <div className="section-panel">
+          {weather?.isRainy && (
+            <div className="weather-banner">
+              ☔ 오늘 서울 비 예보 — 실내 코스로 자동 최적화했어요
+            </div>
+          )}
           <div className="section-heading">
             <div>
               <p className="eyebrow">실시간 플래너</p>
@@ -1115,6 +1210,17 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                       직접 설정하기
                     </button>
                   </div>
+                  {!chatCompleted && (
+                    <div className="quick-start-card">
+                      <div className="quick-start-card__text">
+                        <strong>지금 바로 시작</strong>
+                        <span>질문 없이 지금 시간·분위기에 맞는 코스 바로 추천</span>
+                      </div>
+                      <button className="quick-start-btn" onClick={handleQuickStart}>
+                        바로 추천 →
+                      </button>
+                    </div>
+                  )}
                   <ChatPlanner
                     onDone={(collected: ChatCollected, variants: PlanVariant[]) => {
                       setChatCompleted(true);
@@ -1255,12 +1361,20 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                   />
                 </div>
                 <div className="control-group">
-                  <span>지역</span>
+                  <span>
+                    지역
+                    {weather && !weather.isRainy && (
+                      <span className="weather-chip">
+                        {weather.condition === "clear" ? "☀️" : "⛅"} {weather.temperatureCelsius}°C
+                      </span>
+                    )}
+                  </span>
                   <div className="choice-row">
                     {districtChoices.map((choice) => (
                       <button
                         key={choice}
                         type="button"
+                        title={DISTRICT_HINTS[choice]}
                         className={district === choice ? "choice-chip is-active" : "choice-chip"}
                         onClick={() => {
                           setSelectedCandidateIds([]);
@@ -1272,6 +1386,9 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                       </button>
                     ))}
                   </div>
+                  {district && DISTRICT_HINTS[district] && (
+                    <p className="district-hint">{DISTRICT_HINTS[district]}</p>
+                  )}
                 </div>
 
                 <div className="control-group">
@@ -1346,8 +1463,13 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     title={`${planner.label} 코스`}
                     description={planner.steps.map((s) => s.title).join(" → ")}
                     url={shareUrl}
+                    surpriseMode={surpriseMode}
                   />
                 ) : null}
+                <label className="surprise-toggle">
+                  <input type="checkbox" checked={surpriseMode} onChange={e => setSurpriseMode(e.target.checked)} />
+                  <span>🎁 서프라이즈 모드 (점수·분석 숨김)</span>
+                </label>
               </div>
               <p className="inline-hint">
                 지역, 활동, 취향을 바꾸면 추천이 자동으로 다시 계산됩니다.
@@ -1702,6 +1824,28 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                 </button>
               )}
 
+              <button
+                type="button"
+                className="timeline-toggle-btn"
+                onClick={() => setShowTimeline((t) => !t)}
+              >
+                {showTimeline ? "목록 보기" : "⏱ 타임라인 보기"}
+              </button>
+              {showTimeline && recommendation && (
+                <PlanTimeline
+                  stops={buildTimelineStops(
+                    recommendation.candidates.map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      category: c.category,
+                      stayMinutes: c.stayMinutes,
+                      travelMinutes: c.travelMinutes,
+                      transitMode: c.transitMode,
+                    })),
+                    startTime ?? "19:00"
+                  )}
+                />
+              )}
               <div className="step-list">
                 {planner.steps.map((step, index) => {
                   const stepAlts = recommendation?.candidates.filter(

@@ -24,8 +24,9 @@ export async function PATCH(req: Request) {
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json() as Record<string, unknown>;
+    const { plan, surpriseMode } = await request.json() as { plan: unknown; surpriseMode?: boolean };
     const id = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    const payload = { plan, surpriseMode: surpriseMode ?? false, createdAt: new Date().toISOString() };
 
     if (hasSupabaseServerConfig()) {
       const supabase = getSupabaseAdminClient();
@@ -61,7 +62,14 @@ export async function GET(request: Request) {
       .single();
 
     if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    return NextResponse.json(data.payload);
+    const payload = data.payload as { plan?: Record<string, unknown>; surpriseMode?: boolean; createdAt?: string };
+    if (payload.surpriseMode === true && payload.plan) {
+      const { scores, altPanel, reason, preferenceSummary, profile, ...rest } = payload.plan as Record<string, unknown> & { profile?: Record<string, unknown> };
+      void scores; void altPanel; void reason; void preferenceSummary;
+      const strippedPlan = profile ? { ...rest, profile: (({ tags: _t, ...profileRest }) => profileRest)(profile) } : rest;
+      return NextResponse.json({ ...payload, plan: strippedPlan });
+    }
+    return NextResponse.json(payload);
   } catch {
     return NextResponse.json({ error: "fetch_failed" }, { status: 500 });
   }

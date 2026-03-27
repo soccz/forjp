@@ -7,9 +7,10 @@ type Props = {
   title: string;
   description: string;
   url: string;
+  surpriseMode?: boolean;
 };
 
-export function KakaoShareButton({ title, description, url }: Props) {
+export function KakaoShareButton({ title, description, url, surpriseMode }: Props) {
   const [loading, setLoading] = useState(false);
   const kakaoJsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
 

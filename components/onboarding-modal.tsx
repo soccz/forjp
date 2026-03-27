@@ -9,16 +9,25 @@ const STEPS = [
     emoji: "💬",
     title: "P 모드: 대화로 코스 만들기",
     description: "몇 가지 질문에 답하면 동선이 최적화된 코스를 자동으로 만들어드려요. 즉흥적인 데이트에 딱 맞아요.",
+    preview: false,
   },
   {
     emoji: "✏️",
     title: "J 모드: 직접 수정하기",
     description: "장소 순서를 바꾸고, 대안 장소로 교체하고, 최적 동선 제안도 받을 수 있어요. 꼼꼼하게 계획하는 분께 딱이에요.",
+    preview: false,
   },
   {
     emoji: "🗺️",
     title: "공유하고 저장하기",
     description: "완성된 코스를 저장하거나 상대방에게 공유할 수 있어요. 함께 코스를 보면서 데이트해보세요.",
+    preview: false,
+  },
+  {
+    emoji: "✨",
+    title: "이런 코스가 나와요",
+    description: "성수에서 이렇게 만들어드려요",
+    preview: true,
   },
 ];
 
@@ -47,6 +56,19 @@ export function OnboardingModal({ onDismiss }: Props) {
         <div className="onboarding-modal__emoji">{current.emoji}</div>
         <h3 className="onboarding-modal__title">{current.title}</h3>
         <p className="onboarding-modal__desc">{current.description}</p>
+        {current.preview && (
+          <div className="onboarding-sample">
+            <div className="onboarding-sample__label">감성 코스 예시</div>
+            <div className="onboarding-sample__route">
+              <span className="onboarding-sample__stop">☕ 모먼트 커피</span>
+              <span className="onboarding-sample__arrow">→</span>
+              <span className="onboarding-sample__stop">🍽 을지로 다이닝</span>
+              <span className="onboarding-sample__arrow">→</span>
+              <span className="onboarding-sample__stop">🎬 메가박스 성수</span>
+            </div>
+            <div className="onboarding-sample__meta">3시간 30분 · 72,000원 · 성수</div>
+          </div>
+        )}
 
         <div className="onboarding-dots">
           {STEPS.map((_, i) => (
