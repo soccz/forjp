@@ -9,6 +9,116 @@
 
 ---
 
+## 앱 흐름
+
+```mermaid
+flowchart TD
+    Start([앱 진입]) --> Mode{모드 선택}
+
+    Mode -->|P mode| Chat[AI 채팅]
+    Chat --> Q1[지역 선택]
+    Q1 --> Q2[시간대]
+    Q2 --> Q3[분위기]
+    Q3 --> Q4[예산]
+    Q4 --> Gen[코스 생성]
+    Gen --> Variants[5가지 테마 플랜]
+
+    Mode -->|J mode| Manual[지역 · 카테고리 직접 선택]
+    Manual --> Rec[추천 후보 목록]
+    Rec --> Pick[장소 선택]
+    Pick --> Route[동선 최적화]
+    Route --> Variants
+
+    Variants --> Select[플랜 확정]
+    Select --> Share[코스 공유]
+    Share --> Vote[파트너 투표]
+    Vote --> Done([데이트 시작])
+```
+
+---
+
+## P mode — AI 채팅 상태 흐름
+
+```mermaid
+stateDiagram-v2
+    [*] --> greeting : 앱 진입
+    greeting --> district : 지역 입력
+    district --> time : 시간 입력
+    time --> vibe : 분위기 선택
+    vibe --> budget : 예산 입력
+    budget --> generating : 코스 생성 중
+    generating --> done : 완료
+    done --> refining : 수정 요청
+    refining --> generating : 재생성
+    done --> [*] : 플랜 확정
+```
+
+---
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    subgraph Client["클라이언트"]
+        UI[date-planner-app]
+        Chat[chat-planner]
+    end
+
+    subgraph API["Next.js API Routes"]
+        REC[/recommendations]
+        CHAT[/chat]
+        PLAN[/planner]
+        SHARE[/shared-plans]
+        WEATHER[/weather]
+    end
+
+    subgraph Providers["Data Providers"]
+        KAKAO[Kakao Local API]
+        ODSAY[ODsay 대중교통]
+        CLAUDE[Claude AI]
+        METRO[Open-Meteo 날씨]
+        MOCK[Mock Fallback]
+    end
+
+    subgraph Storage["저장 계층"]
+        SB[(Supabase)]
+        LOCAL[(LocalStorage)]
+    end
+
+    UI --> REC
+    UI --> PLAN
+    UI --> SHARE
+    UI --> WEATHER
+    Chat --> CHAT
+
+    REC --> KAKAO
+    REC --> ODSAY
+    REC --> MOCK
+    CHAT --> CLAUDE
+    WEATHER --> METRO
+    WEATHER --> SB
+
+    REC --> SB
+    SHARE --> SB
+    PLAN --> LOCAL
+    PLAN --> SB
+```
+
+---
+
+## 5가지 테마 플랜
+
+```mermaid
+flowchart LR
+    Cand[장소 후보] --> E[효율형\n이동 최소]
+    Cand --> M[감성형\n분위기 우선]
+    Cand --> R[여유형\n체류 중심]
+    Cand --> RO[로맨틱형\n감도 최대]
+    Cand --> D[발견형\n새로운 경험]
+```
+
+---
+
 ## 시작하기
 
 ```bash
@@ -40,7 +150,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=   # 없으면 로컬 저장 전용
 
 # ── 인증 (필수) ────────────────────────────
-NEXTAUTH_SECRET=             # openssl rand -base64 32
+NEXTAUTH_SECRET=             # 아래 명령으로 생성
 NEXTAUTH_URL=https://your-domain.com
 
 # ── 카카오 로그인 (선택) ───────────────────
@@ -57,9 +167,22 @@ NEXT_PUBLIC_KAKAO_JS_KEY=
 
 ---
 
+## 기능 상태
+
+| 기능 | 활성 조건 | 미설정 시 |
+|------|-----------|-----------|
+| 장소 검색 | `KAKAO_REST_API_KEY` | mock 데이터 |
+| 대중교통 | `ODSAY_API_KEY` | mock 이동 시간 |
+| AI 채팅 | `ANTHROPIC_API_KEY` | rule-based 응답 |
+| 날씨 감지 | — (Open-Meteo, 무료) | 항상 동작 |
+| 코스 저장·공유 | Supabase 3개 변수 | 로컬 저장 |
+| 카카오 로그인 | `KAKAO_*` + `ENABLED=true` | 로그인 비활성 |
+
+---
+
 ## Supabase
 
-저장·공유·캐시 기능을 활성화하려면 [`supabase/schema.sql`](supabase/schema.sql)을 Supabase SQL 에디터에서 실행합니다.
+[`supabase/schema.sql`](supabase/schema.sql)을 Supabase SQL 에디터에서 실행합니다.
 
 | 테이블 | 용도 |
 |--------|------|
@@ -83,19 +206,6 @@ NEXT_PUBLIC_KAKAO_JS_KEY=
 | `/api/saved-plans` | GET / POST | 코스 저장·조회 |
 | `/api/shared-plans` | GET / POST / PATCH | 코스 공유·파트너 투표 |
 | `/api/weather` | GET | 서울 현재 날씨 |
-
----
-
-## 기능 상태
-
-| 기능 | 활성 조건 | 미설정 시 |
-|------|-----------|-----------|
-| 장소 검색 | `KAKAO_REST_API_KEY` | mock 데이터 |
-| 대중교통 | `ODSAY_API_KEY` | mock 이동 시간 |
-| AI 채팅 | `ANTHROPIC_API_KEY` | rule-based 응답 |
-| 날씨 감지 | — (Open-Meteo, 무료) | 항상 동작 |
-| 코스 저장·공유 | Supabase 3개 변수 | 로컬 저장 |
-| 카카오 로그인 | `KAKAO_*` + `ENABLED=true` | 로그인 비활성 |
 
 ---
 
