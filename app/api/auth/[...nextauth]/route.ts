@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Kakao from "next-auth/providers/kakao";
 
-const { handlers, auth } = NextAuth({
+const { handlers } = NextAuth({
   providers: [
     Kakao({
       clientId: process.env.KAKAO_CLIENT_ID ?? "",
@@ -18,5 +18,5 @@ const { handlers, auth } = NextAuth({
   },
 });
 
-export { handlers as GET, handlers as POST };
-export { auth };
+export const GET = handlers.GET;
+export const POST = handlers.POST;
