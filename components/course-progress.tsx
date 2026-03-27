@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { PlannerStep } from "@/lib/types";
 
 export type CourseProgressState = {
@@ -14,6 +15,8 @@ type Props = {
   onCheckIn: (stepId: string) => void;
   onNext: () => void;
   onEnd: () => void;
+  totalMinutes?: number;
+  startTime?: string;
 };
 
 function formatElapsed(isoStart: string): string {
@@ -22,8 +25,17 @@ function formatElapsed(isoStart: string): string {
   return `${Math.floor(diff / 60)}시간 ${diff % 60}분 전 도착`;
 }
 
-export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd }: Props) {
-  const current = steps[progress.currentStepIndex];
+function formatRemaining(totalMinutes: number, startTime?: string): string {
+  const elapsed = startTime
+    ? Math.round((Date.now() - new Date(startTime).getTime()) / 60000)
+    : 0;
+  const remaining = Math.max(0, totalMinutes - elapsed);
+  if (remaining < 60) return `${remaining}분 남았어요`;
+  return `${Math.floor(remaining / 60)}시간 ${remaining % 60}분 남았어요`;
+}
+
+export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd, totalMinutes, startTime }: Props) {
+  const [justCheckedIn, setJustCheckedIn] = useState<string | null>(null);
   const done = progress.currentStepIndex >= steps.length;
 
   return (
@@ -34,6 +46,12 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd }: Pr
           style={{ width: `${(progress.currentStepIndex / steps.length) * 100}%` }}
         />
       </div>
+
+      {totalMinutes && !done && (
+        <div className="course-progress__countdown">
+          {formatRemaining(totalMinutes, startTime)}
+        </div>
+      )}
 
       {done ? (
         <div className="course-progress__done">
@@ -58,6 +76,7 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd }: Pr
                   "progress-step",
                   isDone ? "is-done" : "",
                   isCurrent ? "is-current" : "",
+                  justCheckedIn === step.id ? "progress-step--just-checked" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -79,7 +98,11 @@ export function CourseProgress({ steps, progress, onCheckIn, onNext, onEnd }: Pr
                     <button
                       type="button"
                       className="button button--soft"
-                      onClick={() => onCheckIn(step.id)}
+                      onClick={() => {
+                        onCheckIn(step.id);
+                        setJustCheckedIn(step.id);
+                        setTimeout(() => setJustCheckedIn(null), 700);
+                      }}
                     >
                       지금 여기예요
                     </button>

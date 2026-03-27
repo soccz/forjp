@@ -50,6 +50,8 @@ export function ChatPlanner({ onDone }: Props) {
   const [collected, setCollected] = useState<Partial<ChatCollected>>({});
   const [inputValue, setInputValue] = useState("");
   const [variants, setVariants] = useState<PlanVariant[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [variantSelected, setVariantSelected] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Send first AI message on mount
@@ -57,6 +59,15 @@ export function ChatPlanner({ onDone }: Props) {
     pushAiMessage("어떤 데이트를 계획하고 있어요? 몇 가지만 물어볼게요.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (collected.vibe) {
+      document.body.dataset.vibe = collected.vibe;
+    }
+    return () => {
+      delete document.body.dataset.vibe;
+    };
+  }, [collected.vibe]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,9 +88,32 @@ export function ChatPlanner({ onDone }: Props) {
   }
 
   async function handleReply(displayLabel: string, value: string) {
-    if (step === "done" || step === "generating") return;
+    if (step === "generating") return;
+    if (step === "done" && variantSelected) return;
 
     pushUserMessage(displayLabel);
+
+    // If refining from done state, regenerate variants
+    if (step === "done") {
+      setStep("generating");
+      setTimeout(() => {
+        pushAiMessage(`"${displayLabel}" 반영해서 코스를 다시 만들어볼게요.`);
+        const finalCollected: ChatCollected = {
+          district: collected.district ?? "성수",
+          startTime: collected.startTime ?? "19:00",
+          vibe: collected.vibe ?? "quiet",
+          budgetCap: collected.budgetCap ?? 80000,
+          categories: DEFAULT_CATEGORIES,
+        };
+        void fetchAndBuildVariants(finalCollected).then((v) => {
+          setVariants(v);
+          setStep("done");
+          pushAiMessage("수정된 코스 3가지를 준비했어요. 마음에 드는 걸 골라주세요.");
+        });
+      }, 600);
+      setInputValue("");
+      return;
+    }
 
     // Show loading
     const prevStep = step;
@@ -119,11 +153,17 @@ export function ChatPlanner({ onDone }: Props) {
               vibe: data.collected.vibe ?? "quiet",
               budgetCap: data.collected.budgetCap ?? 80000,
               categories: DEFAULT_CATEGORIES,
+              occasionContext: data.collected.occasionContext,
             };
             void fetchAndBuildVariants(finalCollected).then((v) => {
               setVariants(v);
               setStep("done");
-              pushAiMessage("3가지 코스를 준비했어요. 마음에 드는 걸 고르면 직접 수정도 할 수 있어요.");
+              const occasionGreeting = finalCollected.occasionContext === "기념일"
+                ? "기념일에 어울리는 코스를 준비했어요. "
+                : finalCollected.occasionContext === "소개팅"
+                ? "설레는 첫 만남을 위한 코스를 준비했어요. "
+                : "";
+              pushAiMessage(`${occasionGreeting}5가지 코스를 준비했어요. 마음에 드는 걸 고르면 직접 수정도 할 수 있어요.`);
             });
           }, 1200);
         }
@@ -216,17 +256,21 @@ export function ChatPlanner({ onDone }: Props) {
             {variants.map((variant) => (
               <button
                 key={variant.theme}
-                className="plan-variant-card"
-                onClick={() => onDone(
-                  {
-                    district: collected.district ?? "성수",
-                    startTime: collected.startTime ?? "19:00",
-                    vibe: collected.vibe ?? "quiet",
-                    budgetCap: collected.budgetCap ?? 80000,
-                    categories: DEFAULT_CATEGORIES,
-                  },
-                  variants
-                )}
+                className={`plan-variant-card${selectedVariant === variant.theme ? ' is-selected' : ''}`}
+                onClick={() => {
+                  setSelectedVariant(variant.theme);
+                  setVariantSelected(true);
+                  setTimeout(() => onDone(
+                    {
+                      district: collected.district ?? "성수",
+                      startTime: collected.startTime ?? "19:00",
+                      vibe: collected.vibe ?? "quiet",
+                      budgetCap: collected.budgetCap ?? 80000,
+                      categories: DEFAULT_CATEGORIES,
+                    },
+                    variants
+                  ), 300);
+                }}
               >
                 <div className="plan-variant-card__label">{variant.label}</div>
                 <div className="plan-variant-card__tagline">{variant.tagline}</div>
@@ -259,11 +303,19 @@ export function ChatPlanner({ onDone }: Props) {
         </div>
       )}
 
-      {step !== "generating" && step !== "done" && (
+      {step === "done" && !variantSelected && (
+        <div className="chat-quick-replies">
+          <button className="chat-quick-reply" onClick={() => void handleReply("카페를 더 조용한 곳으로", "카페를 더 조용한 곳으로")}>카페 바꿔줘</button>
+          <button className="chat-quick-reply" onClick={() => void handleReply("예산을 낮춰줘", "예산을 낮춰줘")}>예산 낮춰줘</button>
+          <button className="chat-quick-reply" onClick={() => void handleReply("더 감성적으로", "더 감성적으로")}>더 감성적으로</button>
+        </div>
+      )}
+
+      {(step !== "generating") && (step !== "done" || !variantSelected) && (
         <div className="chat-input-row">
           <input
             className="chat-input"
-            placeholder="직접 입력..."
+            placeholder={step === "done" ? "수정 요청... (예: 카페를 더 조용한 곳으로)" : "직접 입력..."}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => {

@@ -44,6 +44,22 @@ export function buildPlanVariants(
   );
   const relaxedOrdered = optimizeRoute(origin, relaxedPicks).optimalOrder;
 
+  // 로맨틱 코스: maximize quiet + low cost (intimate feel)
+  const romanticPicks = pickBestPerCategory(
+    candidates,
+    categories,
+    (v) => v.quietScore * 2 - v.estimatedCost / 10000
+  );
+  const romanticOrdered = optimizeRoute(origin, romanticPicks).optimalOrder;
+
+  // 발견 코스: maximize hidden/undiscovered (low popularScore = more unique)
+  const discoveryPicks = pickBestPerCategory(
+    candidates,
+    categories,
+    (v) => v.visualScore - v.quietScore * 0.5 + v.travelMinutes * 0.1
+  );
+  const discoveryOrdered = optimizeRoute(origin, discoveryPicks).optimalOrder;
+
   return [
     {
       theme: "efficient",
@@ -71,6 +87,22 @@ export function buildPlanVariants(
       totalCost: relaxedOrdered.reduce((s, v) => s + v.estimatedCost, 0),
       totalMinutes:
         relaxedOrdered.reduce((s, v) => s + v.stayMinutes + v.travelMinutes, 0),
+    },
+    {
+      theme: "romantic",
+      label: "로맨틱 코스",
+      tagline: "조용하고 친밀한, 둘만의 시간",
+      candidates: romanticOrdered,
+      totalCost: romanticOrdered.reduce((s, v) => s + v.estimatedCost, 0),
+      totalMinutes: romanticOrdered.reduce((s, v) => s + v.stayMinutes + v.travelMinutes, 0),
+    },
+    {
+      theme: "discovery",
+      label: "발견 코스",
+      tagline: "새로운 동네, 예상 밖의 장소",
+      candidates: discoveryOrdered,
+      totalCost: discoveryOrdered.reduce((s, v) => s + v.estimatedCost, 0),
+      totalMinutes: discoveryOrdered.reduce((s, v) => s + v.stayMinutes + v.travelMinutes, 0),
     },
   ];
 }

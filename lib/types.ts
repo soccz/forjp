@@ -256,6 +256,7 @@ export type ChatStep =
   | "vibe"
   | "budget"
   | "generating"
+  | "refining"
   | "done";
 
 export type ChatCollected = {
@@ -264,10 +265,11 @@ export type ChatCollected = {
   vibe: VibePreference;
   budgetCap: number;
   categories: ActivityCategory[];
+  occasionContext?: string;
 };
 
 // Plan variants (P mode results)
-export type PlanVariantTheme = "efficient" | "mood" | "relaxed";
+export type PlanVariantTheme = "efficient" | "mood" | "relaxed" | "romantic" | "discovery";
 
 export type PlanVariant = {
   theme: PlanVariantTheme;

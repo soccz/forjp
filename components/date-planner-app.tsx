@@ -288,6 +288,7 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
   // P mode chat & plan variants
   const [chatCompleted, setChatCompleted] = useState(false);
   const [planVariants, setPlanVariants] = useState<PlanVariant[]>([]);
+  const [rainMode, setRainMode] = useState(false);
 
   // J mode: route optimization
   const [routeOptimization, setRouteOptimization] = useState<RouteOptimizationResult | null>(null);
@@ -1356,6 +1357,28 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
 
               {recommendation ? (
                 <div className="recommendation-panel">
+                  {(() => {
+                    const diff = (preferences?.budgetCap ?? 80000) - (recommendation?.totalEstimatedCost ?? 0);
+                    const isOver = diff < 0;
+                    const perPerson = Math.round((recommendation?.totalEstimatedCost ?? 0) / 2);
+                    return (
+                      <div className={`budget-status ${isOver ? "budget-status--over" : "budget-status--ok"}`}>
+                        <span className="budget-status__split">1인 약 {perPerson.toLocaleString("ko-KR")}원</span>
+                        <span className="budget-status__diff">
+                          {isOver
+                            ? `예산 ${Math.abs(diff).toLocaleString("ko-KR")}원 초과`
+                            : `예산 ${diff.toLocaleString("ko-KR")}원 여유`
+                          }
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  <button
+                    className={`rain-mode-btn${rainMode ? ' rain-mode-btn--active' : ''}`}
+                    onClick={() => setRainMode(r => !r)}
+                  >
+                    {rainMode ? '☔ 우천 모드 ON' : '☔ 우천 모드'}
+                  </button>
                   <div className="recommendation-summary">
                     <div>
                       <span>추천 라벨</span>
@@ -1419,10 +1442,16 @@ export function DatePlannerApp({ initialPlanner, scenarios }: DatePlannerAppProp
                     ))}
                   </div>
                   <div className="recommendation-grid">
-                    {recommendation.candidates.map((candidate) => (
+                    {(rainMode
+                      ? [...recommendation.candidates].sort((a, b) => (b.indoor ? 1 : 0) - (a.indoor ? 1 : 0))
+                      : recommendation.candidates
+                    ).map((candidate) => (
                       <article key={candidate.id} className="recommendation-card">
                         <p className="eyebrow">
                           {candidate.district} · {candidate.category}
+                          {rainMode && !candidate.indoor && (
+                            <span className="venue-outdoor-warning">야외 ⚠️</span>
+                          )}
                         </p>
                         <h5>{candidate.name}</h5>
                         <p className="subtle-text">{candidate.description}</p>

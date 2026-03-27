@@ -25,11 +25,19 @@ type FlowEntry = {
   collect: (value: string, collected: Partial<ChatCollected>) => Partial<ChatCollected>;
 };
 
+const OCCASION_REPLIES: Record<string, string> = {
+  기념일: "특별한 날이네요! 몇 주년이에요?",
+  소개팅: "설레겠다! 처음 만나는 분이세요?",
+};
+
 const FLOW: Record<ChatStep, FlowEntry> = {
   greeting: {
     aiMessage: () => "어떤 데이트를 계획하고 있어요? 몇 가지만 물어볼게요.",
     nextStep: "district",
-    collect: (_, c) => c,
+    collect: (value, c) => {
+      const occasion = Object.keys(OCCASION_REPLIES).find((k) => value.includes(k));
+      return occasion ? { ...c, occasionContext: occasion } : c;
+    },
   },
   district: {
     aiMessage: () => "어느 지역에서 만날 예정이에요?",
@@ -56,6 +64,11 @@ const FLOW: Record<ChatStep, FlowEntry> = {
     nextStep: "done",
     collect: (_, c) => c,
   },
+  refining: {
+    aiMessage: () => "수정 요청을 반영해서 코스를 다시 만들고 있어요...",
+    nextStep: "done",
+    collect: (_, c) => c,
+  },
   done: {
     aiMessage: () => "3가지 코스를 준비했어요. 마음에 드는 걸 고르면 직접 수정도 할 수 있어요.",
     nextStep: "done",
@@ -76,7 +89,15 @@ class MockChatProvider implements ChatProviderInterface {
     const entry = FLOW[currentStep];
     const nextCollected = entry.collect(message, collected);
     const nextStep = entry.nextStep;
-    const reply = FLOW[nextStep].aiMessage(nextCollected);
+
+    let reply: string;
+    if (currentStep === "greeting") {
+      const occasion = Object.keys(OCCASION_REPLIES).find((k) => message.includes(k));
+      reply = occasion ? OCCASION_REPLIES[occasion] : FLOW[nextStep].aiMessage(nextCollected);
+    } else {
+      reply = FLOW[nextStep].aiMessage(nextCollected);
+    }
+
     return { reply, nextStep, collected: nextCollected };
   }
 }
